@@ -85,7 +85,7 @@ if ! jq -e . >/dev/null 2>&1 <<<"$render_task_definition_contents"; then
 fi
 
 echo "----> Checking container definitions"
-render_is_task_definition_array=$(jq '.containerDefinitions | if type=="array" then "true" else "false" end' $render_task_definition)
+render_is_task_definition_array=$(jq -r '.containerDefinitions | if type=="array" then "true" else "false" end' $render_task_definition)
 if [ "${render_is_task_definition_array}" == "false" ]; then
 	echo "Error: containerDefinitions section does not exist or is not an array"
 	exit 1
@@ -132,7 +132,7 @@ else
 	fi
 fi
 echo "----> Task Definition successfully rendered!"
-render_container_port=$(jq '.containerDefinitions[] | select(.name=="$render_container_name") | .portMappings[].containerPort' $render_task_definition)
+render_container_port=$(jq ".containerDefinitions[] | select(.name==\"$render_container_name\") | .portMappings[].containerPort" $render_task_definition)
 cat <<EOL >> appspec.yaml
 version: 0.0
 Resources:
