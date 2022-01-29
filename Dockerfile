@@ -12,7 +12,7 @@ RUN set -ex \
     && chmod 600 ~/.ssh/known_hosts \
     && amazon-linux-extras enable docker \
     && yum groupinstall -y "Development tools" \
-    && yum install -y gzip openssl openssl-devel libcurl-devel expat-devel tar vim wget which \
+    && yum install -y gzip openssl openssl-devel libcurl-devel expat-devel tar vim wget which jq \
        amazon-ecr-credential-helper
 
 RUN useradd codebuild-user
