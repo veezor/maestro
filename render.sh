@@ -131,4 +131,17 @@ else
 		echo "Warning: Skipping Secret Manager tasks as --aws-sm-name was not defined"
 	fi
 fi
+render_container_port=$(jq '.containerDefinitions[] | select(.name=="$render_container_name") | .portMappings[].containerPort' $render_task_definition)
 echo "----> Task Definition successfully rendered!"
+cat <<EOL >> appspec.yaml
+version: 0.0
+Resources:
+  - TargetService:
+      Type: AWS::ECS::Service
+      Properties:
+        TaskDefinition: <TASK_DEFINITION>
+        LoadBalancerInfo:
+          ContainerName: $render_container_name
+          ContainerPort: $render_container_port
+EOL
+echo "----> AppSpec succesfully created!"
