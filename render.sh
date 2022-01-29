@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#set -ex
+set -ex
 
 VALID_ARGS=$(getopt -o ac:e:f:i:n:t:u --long use-secrets,container-name:,environment-variables:,family-name:,image:,task-definition:,aws-sm-name:,aws-sm-arns -n 'render' -- "$@")
 if [[ $? -ne 0 ]]; then
@@ -131,8 +131,8 @@ else
 		echo "Warning: Skipping Secret Manager tasks as --aws-sm-name was not defined"
 	fi
 fi
-render_container_port=$(jq '.containerDefinitions[] | select(.name=="$render_container_name") | .portMappings[].containerPort' $render_task_definition)
 echo "----> Task Definition successfully rendered!"
+render_container_port=$(jq '.containerDefinitions[] | select(.name=="$render_container_name") | .portMappings[].containerPort' $render_task_definition)
 cat <<EOL >> appspec.yaml
 version: 0.0
 Resources:
