@@ -141,7 +141,7 @@ Resources:
       Properties:
         TaskDefinition: <TASK_DEFINITION>
         LoadBalancerInfo:
-          ContainerName: $render_container_name
+          ContainerName: "$render_container_name"
           ContainerPort: $render_container_port
 EOL
 echo "----> AppSpec succesfully created!"
