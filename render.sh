@@ -106,7 +106,7 @@ if [ ! -z "$render_family_name" ]; then
 	cat <<< $(jq ".family=\"$render_family_name\"" $render_task_definition) > $render_task_definition
 
     echo "----> Filling container's AWS logs information"
-	cat <<< $(jq ".containerDefinitions[]=(.containerDefinitions[] | select(.name==\"$render_container_name\") | . + {logConfiguration: {logDriver: \"awslogs\", options: {\"awslogs-group\": \"/ecs/$render_family_name\", \"awslogs-region\": \"$AWS_REGION\"}, \"awslogs-stream-prefix\": \"ecs\"}})" $render_task_definition) > $render_task_definition
+	cat <<< $(jq ".containerDefinitions[]=(.containerDefinitions[] | select(.name==\"$render_container_name\") | . + {logConfiguration: {logDriver: \"awslogs\", options: {\"awslogs-group\": \"/ecs/$render_family_name\", \"awslogs-region\": \"$AWS_REGION\", \"awslogs-stream-prefix\": \"ecs\"}}})" $render_task_definition) > $render_task_definition
 fi
 
 if [ ! -z "$render_aws_sm_name" ]; then
