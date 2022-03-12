@@ -1,8 +1,8 @@
 #!/bin/bash
 
-set -ex
+set -e
 
-VALID_ARGS=$(getopt -o ac:e:f:i:n:t:u --long use-secrets,container-name:,environment-variables:,family-name:,image:,task-definition:,aws-sm-name:,aws-sm-arns -n 'render' -- "$@")
+VALID_ARGS=$(getopt -o ac:e:f:i:n:p:st:u --long app-spec,use-secrets,container-name:,environment-variables:,family-name:,process-type:,image:,task-definition:,aws-sm-name:,aws-sm-arns -n 'render' -- "$@")
 if [[ $? -ne 0 ]]; then
 	exit 1;
 fi
@@ -40,6 +40,16 @@ while [ : ]; do
 			#echo "AWS Secret Manager Name is '$2'"
 			shift 2
 			;;
+		-p | --process-type)
+			render_process_type=$2
+			#echo "Process Type is '$2'"
+			shift 2
+			;;
+		-s | --app-spec)
+			render_app_spec=1
+			#echo "Render the appspec.yml template"
+			shift
+			;;
 		-t | --task-definition)
 			render_task_definition=$2
 			#echo "Task definition is '$2'"
@@ -73,8 +83,9 @@ fi
 
 echo "----> Checking Task Definition file '$render_task_definition' exists"
 if [ ! -f "$render_task_definition" ] || [ ! -s "$render_task_definition" ]; then
-	echo "Error: File $render_task_definition was not found or is empty!"
-	exit 1
+	echo "File $render_task_definition was not found or is empty! Creating one based on the standard template..."
+    cp /templates/task-definition.json $render_task_definition
+	cat <<< $(jq ".containerDefinitions[]=(.containerDefinitions[] | select(.name==\"placeholder\") | .name=\"$render_container_name\")" $render_task_definition) > $render_task_definition
 fi
 
 echo "----> Checking Task Definition file '$render_task_definition' has valid JSON"
@@ -98,6 +109,11 @@ if [ -z "$render_is_container_name_present" ]; then
 	exit 1
 fi
 
+if [ ! -z "$render_process_type" ] && [ ! "$render_process_type" == "web" ]; then
+	echo "----> Defining entrypoint for non-web process type $render_process_type"
+	cat <<< $(jq ".containerDefinitions[]=(.containerDefinitions[] | select(.name==\"$render_container_name\") | .entryPoint[0] = \"$render_process_type\" | del(.portMappings))" $render_task_definition) > $render_task_definition
+fi
+
 echo "----> Filling image with $render_image"
 cat <<< $(jq ".containerDefinitions[]=(.containerDefinitions[] | select(.name==\"$render_container_name\") | . + {image: \"$render_image\"})" $render_task_definition) > $render_task_definition
 
@@ -114,20 +130,25 @@ if [ ! -z "$render_aws_sm_name" ]; then
 	render_aws_secrets_manager_result=$(aws secretsmanager get-secret-value --secret-id $render_aws_sm_name)
 	if [ ! -z "$render_use_secrets" ]; then
 		echo "----> Rendering ENVs to be retrieved in runtime"
-		render_secrets=$(echo $render_aws_secrets_manager_result | jq '[ . as $parent | .SecretString | fromjson | del(.TASK_ROLE_ARN, .EXECUTION_ROLE_ARN) | to_entries | .[] | { name: .key, valueFrom: ($parent.ARN + ":" + .key + "::") } ]')
+		render_secrets=$(echo $render_aws_secrets_manager_result | jq '[ . as $parent | .SecretString | fromjson | to_entries | .[] | { name: .key, valueFrom: ($parent.ARN + ":" + .key + "::") } ]')
 		cat <<< $(jq ".containerDefinitions[]=(.containerDefinitions[] | select(.name==\"$render_container_name\") | . + {secrets: $render_secrets})" $render_task_definition) > $render_task_definition
 	else
 		echo "----> Rendering ENVs from Secret Manager in plain text"
-		render_environment=$(echo $render_aws_secrets_manager_result | jq '[ .SecretString | fromjson | del(.TASK_ROLE_ARN, .EXECUTION_ROLE_ARN) | to_entries | .[] | { name: .key, value: .value } ]')
+		render_environment=$(echo $render_aws_secrets_manager_result | jq '[ .SecretString | fromjson | to_entries | .[] | { name: .key, value: .value } ]')
 		cat <<< $(jq ".containerDefinitions[]=(.containerDefinitions[] | select(.name==\"$render_container_name\") | . + {environment: $render_environment})" $render_task_definition) > $render_task_definition
 	fi
+
+    if [ ! -z "$ECS_TASK_DEFINITION_TAGS" ]; then
+		render_aws_ecs_json_tags=$(jq --raw-input 'split(",") | map({"key": split("=")[0], "value": split("=")[1]})' <<<"$ECS_TASK_DEFINITION_TAGS")
+		echo "----> Filling ECS Task Definition Tags"
+        cat <<< $(jq ".tags=$render_aws_ecs_json_tags" $render_task_definition) > $render_task_definition
+	fi
+
 	if [ ! -z "$render_aws_sm_arns" ]; then
 		echo "----> Filling service roles ARNs"
-		render_task_role_arn=$(echo $render_aws_secrets_manager_result | jq '.SecretString | fromjson | .TASK_ROLE_ARN')
-		render_execution_role_arn=$(echo $render_aws_secrets_manager_result | jq '.SecretString | fromjson | .EXECUTION_ROLE_ARN')
-		echo "         Task Role ARN: $render_task_role_arn"
-		echo "         Exec Role ARN: $render_execution_role_arn"
-		cat <<< $(jq ".taskRoleArn=$render_task_role_arn | .executionRoleArn=$render_execution_role_arn" $render_task_definition) > $render_task_definition
+		echo "         Task Role ARN: $ECS_TASK_ROLE_ARN"
+		echo "         Exec Role ARN: $ECS_EXECUTION_ROLE_ARN"
+		cat <<< $(jq ".taskRoleArn=\"$ECS_TASK_ROLE_ARN\" | .executionRoleArn=\"$ECS_EXECUTION_ROLE_ARN\"" $render_task_definition) > $render_task_definition
 	fi
 else
 	if [ ! -z "$render_use_secrets" ] || [ ! -z "$render_aws_sm_arns" ]; then
@@ -135,16 +156,20 @@ else
 	fi
 fi
 echo "----> Task Definition successfully rendered!"
-render_container_port=$(jq ".containerDefinitions[] | select(.name==\"$render_container_name\") | .portMappings[].containerPort" $render_task_definition)
-cat <<EOL >> appspec.yaml
+if [ ! -z "$render_app_spec" ]; then
+	echo "----> Rendering appspec.yaml"
+	render_container_port=$(jq ".containerDefinitions[] | select(.name==\"$render_container_name\") | .portMappings[].containerPort" $render_task_definition)
+	# TODO: transfer default appspec.yaml to templates folder 
+	cat <<EOL >> appspec.yaml
 version: 0.0
 Resources:
-  - TargetService:
-      Type: AWS::ECS::Service
-      Properties:
-        TaskDefinition: <TASK_DEFINITION>
-        LoadBalancerInfo:
-          ContainerName: "$render_container_name"
-          ContainerPort: $render_container_port
+- TargetService:
+	Type: AWS::ECS::Service
+	Properties:
+		TaskDefinition: <TASK_DEFINITION>
+		LoadBalancerInfo:
+		ContainerName: "$render_container_name"
+		ContainerPort: $render_container_port
 EOL
-echo "----> AppSpec succesfully created!"
+	echo "----> AppSpec succesfully created!"
+fi

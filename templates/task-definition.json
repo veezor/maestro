@@ -1,0 +1,40 @@
+{
+  "family": "",
+  "taskRoleArn": "",
+  "executionRoleArn": "",
+  "networkMode": "awsvpc",
+  "cpu": "256",
+  "memory": "512",
+  "containerDefinitions": [
+    {
+      "name": "placeholder",
+      "memory": 512,
+      "image": "",
+      "environment": [],
+      "secrets": [],
+      "essential": true,
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "",
+          "awslogs-region": "",
+          "awslogs-stream-prefix": ""
+        }
+      },
+      "portMappings": [
+          {
+            "hostPort": 3000,
+            "protocol": "tcp",
+            "containerPort": 3000
+          }
+      ],
+      "entryPoint": ["web"],
+      "command": []
+    }
+  ],
+  "requiresCompatibilities": [
+    "FARGATE",
+    "EC2"
+  ],
+  "tags": []
+}
