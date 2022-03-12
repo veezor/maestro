@@ -1,0 +1,83 @@
+#!/bin/bash
+
+set -e
+
+VALID_ARGS=$(getopt -o b:ci:l:p:r: --long branch-name:,create-service,cluster-id:,image-name:,process-type:,repository-slug: -n 'release' -- "$@")
+if [[ $? -ne 0 ]]; then
+	exit 1;
+fi
+
+eval set -- "$VALID_ARGS"
+while [ : ]; do
+	case "$1" in
+		-b | --branch-name)
+			release_branch_name=$2
+			echo "Branch name is '$2'"
+			shift 2
+			;;
+		-c | --create-service)
+			release_create_service=1
+			echo "We should create a service"
+			shift
+			;;
+		-i | --image-name)
+			release_image_name=$2
+			echo "Image Name is '$2'"
+			shift 2
+			;;
+		-l | --cluster-id)
+			release_cluster_id=$2
+			echo "Cluster ID is '$2'"
+			shift 2
+			;;
+		-p | --process-type)
+			release_process_type=$2
+			echo "Process Type is '$2'"
+			shift 2
+			;;
+		-r | --repository-slug)
+			release_repository_slug=$2
+			echo "Repository slug is '$2'"
+			shift 2
+			;;
+		--) shift;
+		    break
+		    ;;
+    esac
+done
+
+echo "----> Rendering Task definition for process: $release_process_type"
+render --task-definition task-definition-$release_process_type.json \
+--container-name $release_repository_slug \
+--image $release_image_name \
+--process-type $release_process_type \
+--family-name $release_repository_slug-$release_branch_name-$release_process_type \
+--aws-sm-name $release_branch_name/$release_repository_slug \
+--use-secrets \
+--aws-sm-arns
+echo "----> Updating Task Definition on ECS"
+release_task_definition_output=$(aws ecs register-task-definition \
+--cli-input-json file://task-definition-$release_process_type.json)
+release_arn=$(jq --raw-output '.taskDefinition.taskDefinitionArn' <<<"$release_task_definition_output")
+echo "----> Created release for $release_process_type process v${release_arn##*:}"
+if [ -z "$ECS_SERVICE_TASK_PROCESSES" ] || [[ $ECS_SERVICE_TASK_PROCESSES =~ $release_process_type ]]; then
+	if [ ! -z "$release_create_service" ]; then
+		echo "----> Provisioning service $release_process_type"
+		release_ecs_output=$(aws ecs create-service \
+		--cluster $release_cluster_id \
+		--service-name $release_repository_slug-$release_branch_name-$release_process_type \
+		--task-definition $release_arn \
+		--launch-type FARGATE \
+		--network-configuration "awsvpcConfiguration={subnets=[$ECS_SERVICE_SUBNETS],securityGroups=[$ECS_SERVICE_SECURITY_GROUPS]}" \
+		--desired-count 1 \
+		)
+		echo "----> First deployment of $release_arn in progress on ECS..."
+	else
+		release_ecs_output=$(aws ecs update-service \
+		--cluster $release_cluster_id \
+		--service $release_repository_slug-$release_branch_name-$release_process_type \
+		--task-definition $release_arn \
+		)
+		echo "----> Rolling deployment of $release_arn in progress on ECS..."
+	fi
+fi
