@@ -60,6 +60,15 @@ release_task_definition_output=$(aws ecs register-task-definition \
 --cli-input-json file://task-definition-$release_process_type.json)
 release_arn=$(jq --raw-output '.taskDefinition.taskDefinitionArn' <<<"$release_task_definition_output")
 echo "----> Created release for $release_process_type process v${release_arn##*:}"
+release_log_group_name="/ecs/$release_repository_slug-$release_branch_name-$release_process_type"
+release_log_group_exists=$(aws logs describe-log-groups --log-group-name-prefix $release_log_group_name | jq '.logGroups | length')
+if [ "$release_log_group_exists" -eq "0" ]; then
+	release_log_group_output=$(aws logs create-log-group \
+	--log-group-name $release_log_group_name \
+	--tags $ECS_TASK_DEFINITION_TAGS)
+	echo "----> Created missing log group for $release_process_type"
+fi
+
 if [ -z "$ECS_SERVICE_TASK_PROCESSES" ] || [[ $ECS_SERVICE_TASK_PROCESSES =~ $release_process_type ]]; then
 	if [ ! -z "$release_create_service" ]; then
 		echo "----> Provisioning service $release_process_type"
@@ -77,6 +86,8 @@ if [ -z "$ECS_SERVICE_TASK_PROCESSES" ] || [[ $ECS_SERVICE_TASK_PROCESSES =~ $re
 		--cluster $release_cluster_id \
 		--service $release_repository_slug-$release_branch_name-$release_process_type \
 		--task-definition $release_arn \
+		--network-configuration "awsvpcConfiguration={subnets=[$ECS_SERVICE_SUBNETS],securityGroups=[$ECS_SERVICE_SECURITY_GROUPS]}" \
+		--force-new-deployment
 		)
 		echo "----> Rolling deployment of $release_arn in progress on ECS..."
 	fi
