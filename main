@@ -15,12 +15,8 @@ REPO_SLUG=${REPO_SLUG/\//-}
 COMMIT_SHORT=$(head -c 8 <<<$CODEBUILD_RESOLVED_SOURCE_VERSION)
 APP_SECRETS=$(aws secretsmanager get-secret-value --secret-id $BRANCH/$REPO_SLUG)
 IMAGE_NAME=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$REPO_SLUG-$BRANCH:$COMMIT_SHORT
-
-for ENV_LINE in $(jq -r '.SecretString | fromjson | to_entries | .[] | .key + "=" + .value' <<<$APP_SECRETS); do
-    #echo "Exporting: ${ENV_LINE%=*}"
-    echo ${ENV_LINE%=*} >> .env
-    export $ENV_LINE
-done
+eval $(jq -r '.SecretString | fromjson | to_entries | .[] | "export " + .key + "=\"" + (.value|tostring) + "\""' <<<$APP_SECRETS)
+jq -r '.SecretString | fromjson | to_entries | .[] | .key' <<<$APP_SECRETS > .env
 
 pack build $IMAGE_NAME \
 --env-file .env \
@@ -43,4 +39,6 @@ while IFS= read -r line; do
     --branch-name $BRANCH \
     --cluster-id $ECS_CLUSTER_ID \
     $( [ -z "$main_create_service" ] && echo "--create-service")
+    #provision
+    #deploy
 done <<< "$main_processes"
