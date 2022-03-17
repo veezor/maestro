@@ -1,8 +1,8 @@
 #!/bin/bash
 
-set -e
+set -eox pipefail
 
-VALID_ARGS=$(getopt -o ac:e:f:i:n:p:st:u --long app-spec,use-secrets,container-name:,environment-variables:,family-name:,process-type:,image:,task-definition:,aws-sm-name:,aws-sm-arns -n 'render' -- "$@")
+VALID_ARGS=$(getopt -o ac:e:f:i:n:p:st:u --long app-spec,use-secrets,container-name:,environment-variables:,family-name:,process-type:,image:,task-definition:,aws-sm-name:,aws-sm-arns -n 'render.sh' -- "$@")
 if [[ $? -ne 0 ]]; then
 	exit 1;
 fi
@@ -138,8 +138,8 @@ if [ ! -z "$render_aws_sm_name" ]; then
 		cat <<< $(jq ".containerDefinitions[]=(.containerDefinitions[] | select(.name==\"$render_container_name\") | . + {environment: $render_environment})" $render_task_definition) > $render_task_definition
 	fi
 
-    if [ ! -z "$ECS_TASK_DEFINITION_TAGS" ]; then
-		render_aws_ecs_json_tags=$(jq --raw-input 'split(",") | map({"key": split("=")[0], "value": split("=")[1]})' <<<"$ECS_TASK_DEFINITION_TAGS")
+    if [ ! -z "$WORKLOAD_RESOURCE_TAGS" ]; then
+		render_aws_ecs_json_tags=$(jq --raw-input 'split(",") | map({"key": split("=")[0], "value": split("=")[1]})' <<<"$WORKLOAD_RESOURCE_TAGS")
 		echo "----> Filling ECS Task Definition Tags"
         cat <<< $(jq ".tags=$render_aws_ecs_json_tags" $render_task_definition) > $render_task_definition
 	fi
