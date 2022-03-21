@@ -43,4 +43,5 @@ jq -r '.SecretString | fromjson | to_entries | .[] | .key' <<<$build_application
 pack build $build_image_name \
 --env-file .env \
 --cache-image ${build_image_name%:*}:cache \
---publish
+--publish \
+--trust-builder
