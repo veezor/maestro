@@ -39,6 +39,14 @@ $ docker run -it --entrypoint sh aws/codebuild/pack:1.0 -c bash
 To let the Docker daemon start up in the container, build it and run:
 `docker run -it --privileged aws/codebuild/pack:1.0 bash`
 
+### Current process steps:
+
+1. Test (TBD)
+2. Build
+3. Release/Render
+4. Provision
+5. Deploy
+
 ### Contributing
 
 Feel free to suggest improvements via pull requests!
