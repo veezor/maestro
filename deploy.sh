@@ -77,6 +77,7 @@ if [ -z "$ECS_SERVICE_TASK_PROCESSES" ] || [[ $ECS_SERVICE_TASK_PROCESSES =~ $de
 		--launch-type FARGATE \
 		--network-configuration "awsvpcConfiguration={subnets=[$ECS_SERVICE_SUBNETS],securityGroups=[$ECS_SERVICE_SECURITY_GROUPS]}" \
 		--desired-count 1 \
+		--enable-execute-command \
         $( [ "$deploy_process_type" = "web" ] && echo "--load-balancers targetGroupArn=$provision_target_group_arn,containerName=$deploy_repository_slug,containerPort=$PORT")
 		)
 		echo "----> First deployment of $release_arn in progress on ECS..."
@@ -86,6 +87,7 @@ if [ -z "$ECS_SERVICE_TASK_PROCESSES" ] || [[ $ECS_SERVICE_TASK_PROCESSES =~ $de
 		--service $deploy_service_name \
 		--task-definition $release_arn \
 		--network-configuration "awsvpcConfiguration={subnets=[$ECS_SERVICE_SUBNETS],securityGroups=[$ECS_SERVICE_SECURITY_GROUPS]}" \
+		--enable-execute-command \
 		--force-new-deployment
 		)
 		echo "----> Rolling deployment of $release_arn in progress on ECS..."
