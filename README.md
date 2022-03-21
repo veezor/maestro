@@ -20,15 +20,10 @@ Create a `buildspec.yml` like this:
 ```yaml
 version: 0.2
 phases:
-  install:
-    commands:
-      - dockerd-entrypoint.sh
   build:
+    on-failure: ABORT
     commands:
-      - |
-        pack build $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/<image>:<version> \
-        --cache-image $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/<image>:cache \
-        --buildpack heroku/php,heroku/nodejs --builder heroku/buildpacks:20 --pull-policy if-not-present --publish
+      - dockerd-entrypoint.sh main.sh
 ```
 
 ### How to build Docker image
