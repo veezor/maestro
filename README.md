@@ -26,71 +26,22 @@ phases:
       - dockerd-entrypoint.sh main.sh
 ```
 
-#### **Environment Variables**
+### **Environment Variables**
 
-1. MAESTRO_BRANCH_OVERRIDE
-    * Temporary overriding of the working branch
-    * Examples:
-        * staging
-        * staging-yourcompany
-2. ECS_SERVICE_SUBNETS
-    * Subnets linked to the ECS Service
-    * Multiples can be assigned at the same time
-    * Examples:
-        * subnet-qwer1234567890
-        * subnet-asdf0987654321
-        * subnet-nth
-3. ECS_SERVICE_SECURITY_GROUPS
-    * Security Groups linked to the ECS Service
-    * Multiples can be assigned at the same time
-    * Examples:
-        * sg-asdf
-        * sg-krekre
-        * sg-nth
-4. ECS_TASK_ROLE_ARN
-    * IAM Role ARN linked to ECS Task
-    * Example:
-        * arn:aws:iam::0123456789:role/< role-name>
-5. ECS_EXECUTION_ROLE_ARN
-    * IAM Role ARN linked to ECS Execution
-    * Example:
-        * arn:aws:iam::0123456789:role/< role-name>
-6. ECS_SERVICE_TASK_PROCESSES
-    * Processes intended to have a service to be created
-    * Examples:
-        * web
-        * worker
-7. WORKLOAD_RESOURCE_TAGS
-    * Tags related to the workload that will be used to all resources provisioned
-    * Examples of tags and values (tag name is case-insensitive):
-        * workload=myapp
-        * environment=staging
-        * owner=me
-8. ALB_SUBNETS
-    * Subnets linked to ALB
-    * Multiples can be assigned at the same time
-    * Examples:
-        * subnet-qwer1234567890
-        * subnet-asdf0987654321
-        * subnet-nth
-9. ALB_SCHEME
-    * Scheme of the ALB
-    * Possible Values (only one):
-        * internet-facing
-        * internal
-10. ALB_SECURITY_GROUPS
-    * Security Groups linked to ALB
-    * Multiples can be assigned at the same time
-    * Examples:
-        * sg-asdf
-        * sg-krekre
-        * sg-nth
-11. WORKLOAD_VPC_ID
-    * VPC id of the workload
-    * Examples:
-        * vpc-ad1234df
-        * vpc-qw56er78
-        * vpc-zxcvghjk
+
+Variable | Description | Examples
+-------- | -------- | -------- 
+MAESTRO_BRANCH_OVERRIDE | Temporary overriding of the working branch | staging <br> staging-yourcompany
+ECS_SERVICE_SUBNETS | Subnets linked to the ECS Service <br> Multiples can be assigned at the same time | subnet-qwer1234567890 <br> subnet-asdf0987654321 <br> subnet-nth
+ECS_SERVICE_SECURITY_GROUPS | Security Groups linked to the ECS Service <br> Multiples can be assigned at the same time | sg-qwerty <br> sg-asdfgh <br> sg-nth
+ECS_TASK_ROLE_ARN | IAM Role ARN linked to ECS Task | arn:aws:iam::0123456789:role/< role-name>
+ECS_EXECUTION_ROLE_ARN | IAM Role ARN linked to ECS Execution | arn:aws:iam::0123456789:role/< role-name>
+ECS_SERVICE_TASK_PROCESSES | Processes intended to have a service to be created | web <br> worker
+WORKLOAD_RESOURCE_TAGS | Tags related to the workload that will be used to all resources provisioned <br><br> Examples include tag name and value <br> &nbsp; &nbsp; Tag name is case-insensitive  | workload=myapp <br> environment=staging <br> owner=me
+ALB_SUBNETS | Subnets linked to ALB <br> Multiples can be assigned at the same time | subnet-qwer1234567890 <br> subnet-asdf0987654321 <br> subnet-nth
+ALB_SCHEME | Scheme of the ALB <br> The example values are the two possible ones <br> &nbsp; &nbsp; Only one of them can be chosen | internet-facing <br> internal
+ALB_SECURITY_GROUPS | Security Groups linked to ALB <br> Multiples can be assigned at the same time | sg-qwerty <br> sg-asdfgh <br> sg-nth
+WORKLOAD_VPC_ID | VPC ID of the workload | vpc-ad1234df <br> vpc-qw56er78 <br> vpc-zxcvghjk
 
 ### How to build Docker image
 
