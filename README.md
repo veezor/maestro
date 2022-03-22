@@ -31,12 +31,12 @@ phases:
 
 Variable | Description | Examples
 -------- | -------- | -------- 
-MAESTRO_BRANCH_OVERRIDE | Temporary overriding of the working branch | staging <br> staging-yourcompany
-ECS_SERVICE_SUBNETS | Subnets linked to the ECS Service <br> Multiples can be assigned at the same time | subnet-qwer1234567890 <br> subnet-asdf0987654321 <br> subnet-nth
+`MAESTRO_BRANCH_OVERRIDE` | Temporary overriding of the working branch | `staging` <br> `production`
+`ECS_SERVICE_SUBNETS` | Subnets linked to the ECS Service <br> *Multiple values can be assigned using comma as separator* | `subnet-qwer1234567890` <br> `subnet-asdf0987654321,subnet-nth`
 ECS_SERVICE_SECURITY_GROUPS | Security Groups linked to the ECS Service <br> Multiples can be assigned at the same time | sg-qwerty <br> sg-asdfgh <br> sg-nth
-ECS_TASK_ROLE_ARN | IAM Role ARN linked to ECS Task | arn:aws:iam::0123456789:role/< role-name>
-ECS_EXECUTION_ROLE_ARN | IAM Role ARN linked to ECS Execution | arn:aws:iam::0123456789:role/< role-name>
-ECS_SERVICE_TASK_PROCESSES | Processes intended to have a service to be created | web <br> worker
+ECS_TASK_ROLE_ARN | IAM Role ARN linked to ECS Task | arn:aws:iam::0123456789:role/&lt;role-name&gt;
+ECS_EXECUTION_ROLE_ARN | IAM Role ARN linked to ECS Execution | `arn:aws:iam::0123456789:role/<role-name>`
+ECS_SERVICE_TASK_PROCESSES | Processes intended to have a service to be created | `web` <br> `web,worker` <br> `web:2,worker:1` <br> `web:2{0.5;512},worker:1{1,2048}`
 WORKLOAD_RESOURCE_TAGS | Tags related to the workload that will be used to all resources provisioned <br><br> Examples include tag name and value <br> &nbsp; &nbsp; Tag name is case-insensitive  | workload=myapp <br> environment=staging <br> owner=me
 ALB_SUBNETS | Subnets linked to ALB <br> Multiples can be assigned at the same time | subnet-qwer1234567890 <br> subnet-asdf0987654321 <br> subnet-nth
 ALB_SCHEME | Scheme of the ALB <br> The example values are the two possible ones <br> &nbsp; &nbsp; Only one of them can be chosen | internet-facing <br> internal
