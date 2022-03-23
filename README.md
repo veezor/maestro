@@ -41,6 +41,9 @@ phases:
 Variable | Description | Examples
 -------- | -------- | -------- 
 `MAESTRO_BRANCH_OVERRIDE` | Temporary overriding of the working branch | `staging` <br> `production`
+`MAESTRO_NO_CACHE` | If the cache layer shouldn't be used in the pack build <br><br> **Choose only one of the example values** | `true` <br> `false`
+`MAESTRO_CLEAR_CACHE` | If all the known cache layers should be cleared <br><br> **Choose only one of the example values** | `true` <br> `false`
+`MAESTRO_DEBUG` | Amplify verbosity of the build <br><br> **Choose only one of the example values** | `true` <br> `false`
 `ECS_SERVICE_SUBNETS` | Subnets linked to the ECS Service <br><br> *Multiple values can be assigned using comma as separator* | `subnet-qwer1234567890` <br> `subnet-asdf0987654321,subnet-nth`
 `ECS_SERVICE_SECURITY_GROUPS` | Security Groups linked to the ECS Service <br><br> *Multiple values can be assigned using comma as separator* | `sg-qwerty` <br> `sg-asdfgh,sg-nth`
 `ECS_TASK_ROLE_ARN` | IAM Role ARN linked to ECS Task | `arn:aws:iam::0123456789:role/<role-name>`
