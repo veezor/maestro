@@ -8,7 +8,7 @@ This repository holds a Dockerfile based on [AWS CodeBuild Docker Images](https:
 
 - Does not require to install `pack` and other dependencies at runtime
 - Will provide `docker login` implicitly as CodeBuild service role allows
-
+- Build step is automatically skipped if commit is the same
 
 ### Current process steps:
 
