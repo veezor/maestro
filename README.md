@@ -38,7 +38,7 @@ phases:
 ### **Environment Variables**
 
 
-Variable | Description | Examples
+Variable | Description | Examples/Values
 -------- | -------- | -------- 
 `MAESTRO_BRANCH_OVERRIDE` | Temporary overriding of the working branch | `staging` <br> `production`
 `MAESTRO_NO_CACHE` | If the cache layer shouldn't be used in the pack build <br><br> **Choose only one of the example values** | `true` <br> `false`
@@ -48,10 +48,10 @@ Variable | Description | Examples
 `ECS_SERVICE_SECURITY_GROUPS` | Security Groups linked to the ECS Service <br><br> *Multiple values can be assigned using comma as separator* | `sg-qwerty` <br> `sg-asdfgh,sg-nth`
 `ECS_TASK_ROLE_ARN` | IAM Role ARN linked to ECS Task | `arn:aws:iam::0123456789:role/<role-name>`
 `ECS_EXECUTION_ROLE_ARN` | IAM Role ARN linked to ECS Execution | `arn:aws:iam::0123456789:role/<role-name>`
-`ECS_SERVICE_TASK_PROCESSES` | Processes intended to have a service to be created according to Procfile <br><br> Possible values and specifics include <br> 1. Simple or Multiple services <br> 2. Number of tasks per service (default=1) <br> 3. Values for CPU Cores and Allocated RAM (default for CPU=0.5 and for RAM=512) <br><br> *Multiple values can be assigned using comma as separator* <br> *Definition for number of tasks can be assigned using colon as separator* <br> *Definition for CPU and RAM can be assigned using semicolon as separator and curly brackets as container* | `web` <br> `web,worker` <br> `web:2,worker:1` <br> `web:2{0.5;512},worker:1{1;2048}`
-`WORKLOAD_RESOURCE_TAGS` | Tags related to the workload that will be used to all resources provisioned <br><br> Examples include tag name (case-insensitive) and value | `workload=myapp` <br> `environment=staging` <br> `owner=me`
+`ECS_SERVICE_TASK_PROCESSES` | Processes intended to have a service to be created according to Procfile <br><br> Possible values and specifics include <br> 1. Simple or Multiple services <br> 2. Number of tasks per service <br> 3. Values for CPU Cores and Allocated RAM <br><br> *Default Tasks per Service =* `1` <br> *Default number of CPU Cores =* `0.5` <br> *Default allocated RAM =* `512` <br><br> *Multiple values can be assigned using comma as separator* <br> *Definition for number of tasks can be assigned using colon as separator* <br> *Definition for CPU and RAM can be assigned using semicolon as separator and curly brackets as container* | `web` <br> `web,worker` <br> `web:2,worker:1` <br> `web:2{0.5;512},worker:1{1;2048}` <br><br> `process:tasks{cpu;memory}`
+`WORKLOAD_RESOURCE_TAGS` | Tags related to the workload that will be used to all resources provisioned <br><br> *Examples include tag name (case-insensitive) and value* | `workload=myapp` <br> `environment=staging` <br> `owner=me`
 `ALB_SUBNETS` | Subnets linked to ALB <br><br> *Multiple values can be assigned using comma as separator* | `subnet-qwer1234567890` <br> `subnet-asdf0987654321,subnet-nth`
-`ALB_SCHEME` | Scheme of the ALB <br><br> *Default =* `internet-facing` <br> **Choose only one of the example values** | `internet-facing` <br> `internal`
+`ALB_SCHEME` | Scheme of the ALB <br><br> *Default =* `internet-facing` <br><br> **Choose only one of the example values** | `internet-facing` <br> `internal`
 `ALB_SECURITY_GROUPS` | Security Groups linked to ALB <br><br> *Multiple values can be assigned using comma as separator* | `sg-qwerty` <br> `sg-asdfgh,sg-nth`
 `WORKLOAD_VPC_ID` | VPC ID of the workload | `vpc-ad1234df` <br> `vpc-qw56er78` <br> `vpc-zxcvghjk`
 
