@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -eox pipefail
+set -eo pipefail
 
 VALID_ARGS=$(getopt -o ac:e:f:i:n:p:st:u --long app-spec,use-secrets,container-name:,environment-variables:,family-name:,process-type:,image:,task-definition:,aws-sm-name:,aws-sm-arns -n 'render.sh' -- "$@")
 if [[ $? -ne 0 ]]; then
@@ -116,6 +116,21 @@ fi
 
 echo "----> Filling image with $render_image"
 cat <<< $(jq ".containerDefinitions[]=(.containerDefinitions[] | select(.name==\"$render_container_name\") | . + {image: \"$render_image\"})" $render_task_definition) > $render_task_definition
+
+render_process_parameters="$render_process_type(:[0-9]+)?\{([0-9]+(\.[0-9]+)?)?(;([0-9]+))?\}.*"
+if [[ $ECS_SERVICE_TASK_PROCESSES =~ $render_process_parameters ]]; then
+	if [ ! -z ${BASH_REMATCH[2]} ]; then
+		echo "----> Filling CPU with ${BASH_REMATCH[2]}"
+		cat <<< $(jq ".cpu=\"${BASH_REMATCH[2]}\"" $render_task_definition) > $render_task_definition
+	fi
+
+	if [ ! -z ${BASH_REMATCH[5]} ]; then
+		echo "----> Filling Memory with ${BASH_REMATCH[5]}"
+		cat <<< $(jq ".memory=\"${BASH_REMATCH[5]}\"" $render_task_definition) > $render_task_definition
+		cat <<< $(jq ".memory=\"${BASH_REMATCH[5]}\"" $render_task_definition) > $render_task_definition
+		cat <<< $(jq ".containerDefinitions[]=(.containerDefinitions[] | select(.name==\"$render_container_name\") | . + {memory: ${BASH_REMATCH[5]}})" $render_task_definition) > $render_task_definition
+	fi
+fi
 
 if [ ! -z "$render_family_name" ]; then
 	echo "----> Filling family with $render_family_name"

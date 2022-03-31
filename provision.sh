@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -eox pipefail
+set -eo pipefail
 
 VALID_ARGS=$(getopt -o b:p:r: --long branch-name:,process-type:,repository-slug: -n 'provision.sh' -- "$@")
 if [[ $? -ne 0 ]]; then
