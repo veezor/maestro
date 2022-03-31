@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -eox pipefail
+set -eo pipefail
 
 VALID_ARGS=$(getopt -o ci:p:r:s: --long create-service,cluster-id:,process-type:,repository-slug:,service-name: -n 'deploy.sh' -- "$@")
 if [[ $? -ne 0 ]]; then
@@ -64,6 +64,12 @@ fi
 if [ -z "$ECS_SERVICE_TASK_PROCESSES" ] || [[ $ECS_SERVICE_TASK_PROCESSES =~ $deploy_process_type ]]; then
     release_arn=$(cat .releasearn)
 	provision_target_group_arn=$(cat .tgarn)
+    deploy_desired_count=1
+	deploy_desired_count_regex="$deploy_process_type:([0-9]+).*"
+	if [[ $ECS_SERVICE_TASK_PROCESSES =~ $deploy_desired_count_regex ]]; then
+		deploy_desired_count=${BASH_REMATCH[1]}
+	fi
+
 	if [ -z "$PORT" ]; then
 		# TODO: remember to load it from SM
 		PORT=3000
@@ -76,11 +82,11 @@ if [ -z "$ECS_SERVICE_TASK_PROCESSES" ] || [[ $ECS_SERVICE_TASK_PROCESSES =~ $de
 		--task-definition $release_arn \
 		--launch-type FARGATE \
 		--network-configuration "awsvpcConfiguration={subnets=[$ECS_SERVICE_SUBNETS],securityGroups=[$ECS_SERVICE_SECURITY_GROUPS]}" \
-		--desired-count 1 \
+		--desired-count $deploy_desired_count \
 		--enable-execute-command \
         $( [ "$deploy_process_type" = "web" ] && echo "--load-balancers targetGroupArn=$provision_target_group_arn,containerName=$deploy_repository_slug,containerPort=$PORT")
 		)
-		echo "----> First deployment of $release_arn in progress on ECS..."
+		echo "----> First deployment of $release_arn with $deploy_desired_count task(s) in progress on ECS..."
 	else
 		deploy_ecs_output=$(aws ecs update-service \
 		--cluster $deploy_cluster_id \
@@ -88,8 +94,9 @@ if [ -z "$ECS_SERVICE_TASK_PROCESSES" ] || [[ $ECS_SERVICE_TASK_PROCESSES =~ $de
 		--task-definition $release_arn \
 		--network-configuration "awsvpcConfiguration={subnets=[$ECS_SERVICE_SUBNETS],securityGroups=[$ECS_SERVICE_SECURITY_GROUPS]}" \
 		--enable-execute-command \
-		--force-new-deployment
+		--force-new-deployment \
+		--desired-count $deploy_desired_count
 		)
-		echo "----> Rolling deployment of $release_arn in progress on ECS..."
+		echo "----> Rolling deployment of $release_arn with $deploy_desired_count task(s) in progress on ECS..."
 	fi
 fi

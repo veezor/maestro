@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -eox pipefail
+set -eo pipefail
 
 if [ ! -z "$MAESTRO_BRANCH_OVERRIDE" ]; then
     BRANCH=$MAESTRO_BRANCH_OVERRIDE
@@ -15,6 +15,7 @@ AWS_ACCOUNT_ID=$(cut -d':' -f5 <<<$CODEBUILD_BUILD_ARN)
 REPO_SLUG=${CODEBUILD_SOURCE_REPO_URL#*://*/}
 REPO_SLUG=${REPO_SLUG%.git}
 REPO_SLUG=${REPO_SLUG/\//-}
+REPO_SLUG=${REPO_SLUG/\./-}
 COMMIT_SHORT=$(head -c 8 <<<$CODEBUILD_RESOLVED_SOURCE_VERSION)
 APP_SECRETS=$(aws secretsmanager get-secret-value --secret-id $BRANCH/$REPO_SLUG)
 IMAGE_NAME=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$REPO_SLUG-$BRANCH:$COMMIT_SHORT
