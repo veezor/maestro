@@ -77,6 +77,7 @@ if [ "$provision_process_type" = "web" ]; then
     else
         provision_alb_arn=$(jq --raw-output '.LoadBalancers[0].LoadBalancerArn' <<<$provision_alb_exists)
     fi
+    provision_json_workload_resource_tags=$(jq --raw-input --raw-output '[ split(",") | .[] | "Key=" + split("=")[0] + ",Value=" + split("=")[1] ] | join(" ")' <<<"$WORKLOAD_RESOURCE_TAGS")
     provision_tg_name=$provision_repository_slug-$provision_branch_name
     provision_tg_exists=$(aws elbv2 describe-target-groups --name ${provision_alb_name:0:32} || echo false)
     if [ "$provision_tg_exists" = false ]; then

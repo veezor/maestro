@@ -65,8 +65,10 @@ render.sh --task-definition task-definition-$release_process_type.json \
 --aws-sm-name $release_branch_name/$release_repository_slug \
 --use-secrets \
 --aws-sm-arns
+release_json_workload_resource_tags=$(jq --raw-input --raw-output '[ split(",") | .[] | "key=" + split("=")[0] + ",value=" + split("=")[1] ] | join(" ")' <<<"$WORKLOAD_RESOURCE_TAGS")
 echo "----> Updating Task Definition on ECS"
 release_task_definition_output=$(aws ecs register-task-definition \
+--tags $release_json_workload_resource_tags \
 --cli-input-json file://task-definition-$release_process_type.json)
 release_arn=$(jq --raw-output '.taskDefinition.taskDefinitionArn' <<<"$release_task_definition_output")
 echo $release_arn > .releasearn

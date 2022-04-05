@@ -74,6 +74,7 @@ if [ -z "$ECS_SERVICE_TASK_PROCESSES" ] || [[ $ECS_SERVICE_TASK_PROCESSES =~ $de
 		# TODO: remember to load it from SM
 		PORT=3000
 	fi
+	deploy_json_workload_resource_tags=$(jq --raw-input --raw-output '[ split(",") | .[] | "key=" + split("=")[0] + ",value=" + split("=")[1] ] | join(" ")' <<<"$WORKLOAD_RESOURCE_TAGS")
     echo "----> Deploying service $deploy_process_type"
 	if [ ! -z "$deploy_create_service" ]; then
 		deploy_ecs_output=$(aws ecs create-service \
@@ -84,6 +85,7 @@ if [ -z "$ECS_SERVICE_TASK_PROCESSES" ] || [[ $ECS_SERVICE_TASK_PROCESSES =~ $de
 		--network-configuration "awsvpcConfiguration={subnets=[$ECS_SERVICE_SUBNETS],securityGroups=[$ECS_SERVICE_SECURITY_GROUPS]}" \
 		--desired-count $deploy_desired_count \
 		--enable-execute-command \
+		--tags $deploy_json_workload_resource_tags \
         $( [ "$deploy_process_type" = "web" ] && echo "--load-balancers targetGroupArn=$provision_target_group_arn,containerName=$deploy_repository_slug,containerPort=$PORT")
 		)
 		echo "----> First deployment of $release_arn with $deploy_desired_count task(s) in progress on ECS..."
