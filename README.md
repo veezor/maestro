@@ -55,20 +55,21 @@ Variable | Description | Examples/Values
 `ALB_SECURITY_GROUPS` | Security Groups linked to ALB <br><br> *Multiple values can be assigned using comma as separator* | `sg-qwerty` <br> `sg-asdfgh,sg-nth`
 `WORKLOAD_VPC_ID` | VPC ID of the workload | `vpc-ad1234df` <br> `vpc-qw56er78` <br> `vpc-zxcvghjk`
 `ECS_EFS_VOLUMES` | Add EFS volumes for ECS tasks <br><br> *Multiple values can be assigned using comma as separator* | `<volume-name>:<filesystem-id>{<efs-root>@<path-to-task-build>;<to-encrypt-in-transit>}` <br> `storage-efs:fs-013a693f90df46413{/@public/storage;encrypted},images-efs:fs-0bd8f82bba0a89448{/@public/images;encrypted}`
+`MAESTRO_ONLY_BUILD` | If it should stop after build when the value is `true`, should be left empty otherwise | `true`
+`MAESTRO_SKIP_BUILD` | If it should start right after build and do provision, release and deploy when the value is `true`, should be left empty otherwise | `true`
 
 ### How to build Docker image
 
 Steps to build image
 
-```bash
+``` bash
 $ git clone https://github.com/aws/aws-codebuild-cnb-pack.git
 $ docker build -t aws/codebuild/pack:1.0 .
 $ docker run -it --entrypoint sh aws/codebuild/pack:1.0 -c bash
 ```
 
-To let the Docker daemon start up in the container, build it and run:
+To let the Docker daemon start up in the container, build it and run: <br>
 `docker run -it --privileged aws/codebuild/pack:1.0 bash`
 
-### Contributing
-
-Feel free to suggest improvements via pull requests!
+>### Contributing
+>Feel free to suggest improvements via pull requests!
