@@ -1,6 +1,3 @@
-
-
-
 # AWS CodeBuild Cloud Native Buildpack pack CLI Docker image
 
 This repository holds a Dockerfile based on [AWS CodeBuild Docker Images](https://github.com/aws/aws-codebuild-docker-images) with focus on building [Cloud Native Buildpacks](https://buildpacks.io/) using [`pack CLI`](https://buildpacks.io/docs/tools/pack/#pack-cli).
@@ -40,16 +37,16 @@ phases:
 
 ### **Environment Variables**
 
-  Variable | Description | Examples/Values 
+Variable | Description | Examples/Values/Default 
 ---|---|---
- `ALB_SCHEME` | Scheme of the ALB <br><br> **Choose only one of the example values** | `internet-facing` <br> `internal` <br><br> *Default =* `internet-facing`
+ `ALB_SCHEME` | Scheme of the ALB <br><br> **Choose only one of the example values** | `internet-facing` <br> `internal` <br><br><br> *Default =* `internet-facing`
  `ALB_SECURITY_GROUPS` | Security Groups linked to ALB <br><br> *Multiple values can be assigned using comma as separator* | `sg-qwerty` <br> `sg-asdfgh,sg-nth` 
  `ALB_SUBNETS` | Subnets linked to ALB <br><br> *Multiple values can be assigned using comma as separator* | `subnet-qwer1234567890` <br> `subnet-asdf0987654321,subnet-nth` 
  `ECS_EFS_VOLUMES` | Add EFS volumes for ECS tasks <br><br> *Multiple values can be assigned using comma as separator* | `<volume-name>:<filesystem-id>{<efs-root>@<path-to-task-build>;<to-encrypt-in-transit>}` <br> `storage-efs:fs-013a693f90df46413{/@public/storage;encrypted},images-efs:fs-0bd8f82bba0a89448{/@public/images;encrypted}` 
  `ECS_EXECUTION_ROLE_ARN` | IAM Role ARN linked to ECS Execution | `arn:aws:iam::0123456789:role/<role-name>` 
  `ECS_SERVICE_SECURITY_GROUPS` | Security Groups linked to the ECS Service <br><br> *Multiple values can be assigned using comma as separator* | `sg-qwerty` <br> `sg-asdfgh,sg-nth` 
  `ECS_SERVICE_SUBNETS` | Subnets linked to the ECS Service <br><br> *Multiple values can be assigned using comma as separator* | `subnet-qwer1234567890` <br> `subnet-asdf0987654321,subnet-nth` 
- `ECS_SERVICE_TASK_PROCESSES` | Processes intended to have a service to be created according to Procfile <br><br> Possible values and specifics: <br> 1. Name of the process <br> 2. Values for CPU Cores and Allocated RAM <br> 3. Amount of tasks per process <br> 4. Amount of tasks and triggers in percentage for auto scaling <br><br> *Multiple services can be assigned using comma as separator* <br> <br> *For CPU and RAM assignment use semicolon as separator and curly brackets as container* <br> *For number of tasks assignment use colon as separator and a dash between numbers to define max task auto scaling value* <br> *For CPU and RAM auto scaling usage percentage triggers assignment  use semicolon as separator and square brackets as container* | `web` <br> `web,worker` <br> `web{2,2048}:2-5[mem=55;cpu=60]` <br> `web{0.5;512}:2,worker{1;2048}:1-3` <br><br> `process{v-cpus;mem}:min-max[mem=percent;cpu=percent]` <br><br> **Default Values:** <br> `Tasks per Process` = `1` <br> `Number of CPU Cores` = `0.5` <br> `Allocated RAM` = `512` <br> `CPU usage percentage auto scaling trigger` = `55` <br><br> Example using all default values except `Tasks per Process`: <br> `test:2-5` <br> Full manual example would be: <br> `test{0.5,512}:2-5[cpu=55]`
+ `ECS_SERVICE_TASK_PROCESSES` | Processes intended to have a service to be created according to Procfile <br><br> Possible values and specifics: <br> 1. Name of the process <br> 2. Values for CPU Cores and Allocated RAM <br> 3. Amount of tasks per process <br> 4. Amount of tasks and triggers in percentage for auto scaling <br><br> *Multiple services can be assigned using comma as separator* <br> <br> *For CPU and RAM assignment use semicolon as separator and curly brackets as container* <br> *For number of tasks assignment use colon as separator and a dash between numbers to define max task auto scaling value* <br> *For CPU and RAM auto scaling usage percentage triggers assignment  use semicolon as separator and square brackets as container* | `web` <br> `web,worker` <br> `web{2,2048}:2-5[mem=55;cpu=60]` <br> `web{0.5;512}:2,worker{1;2048}:1-3` <br><br> `process{v-cpus;mem}:min-max[mem=percent;cpu=percent]` <br><br><br> **Default Values:** <br> `Tasks per Process` = `1` <br> `Number of CPU Cores` = `0.5` <br> `Allocated RAM` = `512` <br> `CPU usage percentage auto scaling trigger` = `55` <br><br> Example using all default values except `Tasks per Process`: <br> `test:2-5` <br> Full manual example would be: <br> `test{0.5,512}:2-5[cpu=55]`
  `ECS_TASK_ROLE_ARN` | IAM Role ARN linked to ECS Task | `arn:aws:iam::0123456789:role/<role-name>` 
  `MAESTRO_BRANCH_OVERRIDE` | Temporary overriding of the working branch | `staging` <br> `production` 
  `MAESTRO_CLEAR_CACHE` | If all the known cache layers should be cleared <br><br> **Choose only one of the example values** | `true` <br> `false` 
