@@ -117,19 +117,35 @@ fi
 echo "----> Filling image with $render_image"
 cat <<< $(jq ".containerDefinitions[]=(.containerDefinitions[] | select(.name==\"$render_container_name\") | . + {image: \"$render_image\"})" $render_task_definition) > $render_task_definition
 
-render_process_parameters="$render_process_type(:[0-9]+)?\{([0-9]+(\.[0-9]+)?)?(;([0-9]+))?\}.*"
+render_process_parameters="$render_process_type\{([0-9]+);([0-9]+)\}"
 if [[ $ECS_SERVICE_TASK_PROCESSES =~ $render_process_parameters ]]; then
-	if [ ! -z ${BASH_REMATCH[2]} ]; then
-		echo "----> Filling CPU with ${BASH_REMATCH[2]}"
-		cat <<< $(jq ".cpu=\"${BASH_REMATCH[2]}\"" $render_task_definition) > $render_task_definition
+	if [ ! -z ${BASH_REMATCH[1]} ]; then
+		echo "----> Filling CPU with ${BASH_REMATCH[1]}"
+		cat <<< $(jq ".cpu=\"${BASH_REMATCH[1]}\"" $render_task_definition) > $render_task_definition
 	fi
 
-	if [ ! -z ${BASH_REMATCH[5]} ]; then
-		echo "----> Filling Memory with ${BASH_REMATCH[5]}"
-		cat <<< $(jq ".memory=\"${BASH_REMATCH[5]}\"" $render_task_definition) > $render_task_definition
-		cat <<< $(jq ".memory=\"${BASH_REMATCH[5]}\"" $render_task_definition) > $render_task_definition
-		cat <<< $(jq ".containerDefinitions[]=(.containerDefinitions[] | select(.name==\"$render_container_name\") | . + {memory: ${BASH_REMATCH[5]}})" $render_task_definition) > $render_task_definition
+	if [ ! -z ${BASH_REMATCH[2]} ]; then
+		echo "----> Filling Memory with ${BASH_REMATCH[2]}"
+		cat <<< $(jq ".memory=\"${BASH_REMATCH[2]}\"" $render_task_definition) > $render_task_definition
+		cat <<< $(jq ".containerDefinitions[]=(.containerDefinitions[] | select(.name==\"$render_container_name\") | . + {memory: ${BASH_REMATCH[2]}})" $render_task_definition) > $render_task_definition
 	fi
+fi
+
+if [ ! -z "ECS_EFS_VOLUMES" ]; then
+	render_volume_parameters="^(.*):(.*)\{(.*)@(.*)\}$"
+	for volume in ${ECS_EFS_VOLUMES//,/ }; do
+		render_volume_encrypted="DISABLED"
+		# TODO: in order to expand possibilities (like readonly) this regex must be reviewed
+		if [[ $volume =~ $render_volume_parameters ]]; then
+			if [ ! -z ${BASH_REMATCH[4]##*;} ]; then
+				render_volume_encrypted="ENABLED"
+			fi
+			echo "----> Filling EFS Volume ${BASH_REMATCH[2]} as ${BASH_REMATCH[1]} on ${BASH_REMATCH[3]} with encryption $render_volume_encrypted"
+			cat <<< $(jq ".volumes += [{ \"name\": \"${BASH_REMATCH[1]}\", \"efsVolumeConfiguration\": { \"fileSystemId\": \"${BASH_REMATCH[2]}\", \"rootDirectory\": \"${BASH_REMATCH[3]}\", \"transitEncryption\": \"$render_volume_encrypted\"} }]" $render_task_definition) > $render_task_definition
+			echo "----> Filling container mount point for ${BASH_REMATCH[1]} at ${BASH_REMATCH[4]%;*}"
+			cat <<< $(jq ".containerDefinitions[]=(.containerDefinitions[] | select(.name==\"$render_container_name\") | .mountPoints += [{ \"containerPath\": \"${BASH_REMATCH[4]%;*}\", \"sourceVolume\": \"${BASH_REMATCH[1]}\"}])" $render_task_definition) > $render_task_definition
+		fi
+	done
 fi
 
 if [ ! -z "$render_family_name" ]; then

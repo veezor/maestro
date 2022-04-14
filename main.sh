@@ -12,7 +12,9 @@ echo "AWS CLI Version: $(aws --version)"
 echo "Buildpack CLI Version: $(pack --version)"
 
 AWS_ACCOUNT_ID=$(cut -d':' -f5 <<<$CODEBUILD_BUILD_ARN)
-REPO_SLUG=${CODEBUILD_SOURCE_REPO_URL#*://*/}
+if [ -z "$REPO_SLUG" ]; then
+    REPO_SLUG=${CODEBUILD_SOURCE_REPO_URL#*://*/}
+fi
 REPO_SLUG=${REPO_SLUG%.git}
 REPO_SLUG=${REPO_SLUG/\//-}
 REPO_SLUG=${REPO_SLUG/\./-}
@@ -20,8 +22,16 @@ COMMIT_SHORT=$(head -c 8 <<<$CODEBUILD_RESOLVED_SOURCE_VERSION)
 APP_SECRETS=$(aws secretsmanager get-secret-value --secret-id $BRANCH/$REPO_SLUG)
 IMAGE_NAME=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$REPO_SLUG-$BRANCH:$COMMIT_SHORT
 
-build.sh --image-name $IMAGE_NAME \
---application-secrets "$APP_SECRETS"
+if [ -z "$MAESTRO_SKIP_BUILD" ]; then
+    build.sh --image-name $IMAGE_NAME \
+    --application-secrets "$APP_SECRETS"
+    if [ ! -z "$MAESTRO_ONLY_BUILD" ]; then
+        echo "----> Build completed. Skipping further steps..."
+        exit 0
+    fi
+else
+    echo "----> Skipping build and running further steps..."
+fi
 
 if [ -z "$ECS_CLUSTER_ID" ]; then
   export ECS_CLUSTER_ID=$REPO_SLUG-$BRANCH

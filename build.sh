@@ -39,8 +39,9 @@ fi
 if [ $(DOCKER_CLI_EXPERIMENTAL=enabled docker manifest inspect $build_image_name > /dev/null ; echo $?) -eq 0 ]; then
 	echo "----> Skipping build as image already exists"
 else
-	# TODO: handle multiline variables like SSH keys
+	# TODO: export multiline environment variables from $build_application_secrets like SSH keys
 	eval $(jq -r '.SecretString | fromjson | to_entries | .[] | "export " + .key + "=\"" + (.value|tostring) + "\""' <<<$build_application_secrets)
+	
 	jq -r '.SecretString | fromjson | to_entries | .[] | .key' <<<$build_application_secrets > .env
 	#jq -r '.SecretString | fromjson | to_entries | .[] | .key + "=\"" + (.value|tostring) + "\""' <<<$build_application_secrets > .env
 
