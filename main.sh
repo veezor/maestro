@@ -14,6 +14,7 @@ echo "Buildpack CLI Version: $(pack --version)"
 AWS_ACCOUNT_ID=$(cut -d':' -f5 <<<$CODEBUILD_BUILD_ARN)
 if [ -z "$REPO_SLUG" ]; then
     REPO_SLUG=${CODEBUILD_SOURCE_REPO_URL#*://*/}
+    REPO_SLUG=${REPO_SLUG,,}
 fi
 REPO_SLUG=${REPO_SLUG%.git}
 REPO_SLUG=${REPO_SLUG/\//-}
