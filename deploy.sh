@@ -121,27 +121,43 @@ if [ -z "$ECS_SERVICE_TASK_PROCESSES" ] || [[ $ECS_SERVICE_TASK_PROCESSES =~ $de
 			case $policy in
 				cpu=*)
 					deploy_predefined_metric_type="ECSServiceAverageCPUUtilization"
+					type_of='cpu'
 					;;
 				mem=*)
 					deploy_predefined_metric_type="ECSServiceAverageMemoryUtilization"
+					type_of='mem'
 					;;
 				alb=*)
 					deploy_predefined_metric_type="ALBRequestCountPerTarget"
-					# TODO: discover ALB and TargetGroup ARNs
+					type_of='alb'
+					deploy_loadbalancer_arn=$(aws elbv2 describe-load-balancers --name $deploy_cluster_id --query 'LoadBalancers[0].LoadBalancerArn' --output text)
+					deploy_targetgroup_arn=$(aws elbv2 describe-target-groups --load-balancer-arn $deploy_loadbalancer_arn --query 'TargetGroups[0].TargetGroupArn' --output text)
+					if [[ $deploy_loadbalancer_arn =~ app.* ]]; then
+  					deploy_loadbalancer_arn_final_portion=${BASH_REMATCH[0]}
+					fi
+					if [[ $deploy_targetgroup_arn =~ targetgroup.* ]]; then
+  					deploy_targetgroup_arn_final_portion=${BASH_REMATCH[0]}
+					fi
+					deploy_resource_label=$deploy_loadbalancer_arn_final_portion/$deploy_targetgroup_arn_final_portion
 					;;
 				*)
 					echo "Error: Unknown autoscaling policy $policy. Valid policies are: cpu=<value>, mem=<value>, alb=<value>"
 					exit 1
 					;;
 			esac
+			if [[ $type_of == 'alb' ]]; then
+				deploy_predefined_metric_specification="{PredefinedMetricType=$deploy_predefined_metric_type,ResourceLabel=$deploy_resource_label}"
+			else
+				deploy_predefined_metric_specification="{PredefinedMetricType=$deploy_predefined_metric_type}"
+			fi
 			echo "----> Registering scaling policies for $deploy_process_type with $deploy_predefined_metric_type=$deploy_target_value"
 			aws application-autoscaling put-scaling-policy \
 			--service-namespace ecs \
-			--policy-name $deploy_service_name-cpu-scaling-policy \
+			--policy-name $deploy_service_name-$type_of-scaling-policy \
 			--resource-id service/$deploy_cluster_id/$deploy_service_name \
 			--scalable-dimension ecs:service:DesiredCount \
 			--policy-type TargetTrackingScaling \
-			--target-tracking-scaling-policy-configuration "TargetValue=$deploy_target_value,PredefinedMetricSpecification={PredefinedMetricType=$deploy_predefined_metric_type}"
+			--target-tracking-scaling-policy-configuration "TargetValue=$deploy_target_value,PredefinedMetricSpecification=$deploy_predefined_metric_specification"
 		done
 	#else
 	 	# TODO: remove scalable target if it exists
