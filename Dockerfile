@@ -104,7 +104,7 @@ RUN set -ex \
     && docker-compose version
 
 #=======================End of layer: runtimes  =================
-FROM runtimes AS al2_v3
+FROM runtimes AS maestro_v1
 
 # Configure SSH
 COPY ssh_config /root/.ssh/config
@@ -115,4 +115,4 @@ COPY amazon-ssm-agent.json          /etc/amazon/ssm/
 
 ENTRYPOINT ["dockerd-entrypoint.sh"]
 
-#=======================End of layer: al2_v3  =================
+#=======================End of layer: maestro_v1  =================
