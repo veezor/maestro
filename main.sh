@@ -41,6 +41,9 @@ fi
 main_processes=$(pack inspect $IMAGE_NAME | sed '0,/^Processes:$/d' | tail -n +2 | cut -d' ' -f3)
 main_processes=${main_processes%$'\n'*}
 main_processes=${main_processes%$'\n'}
+# refactor line break below
+main_processes="$main_processes
+launcher"
 main_services=$(aws ecs list-services --cluster $ECS_CLUSTER_ID)
 while IFS= read -r line; do
     main_create_service=$(jq ".serviceArns[] | select(endswith(\"$REPO_SLUG-$BRANCH-$line\"))" <<<$main_services)

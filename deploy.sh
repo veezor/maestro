@@ -61,8 +61,8 @@ if [ -z "$deploy_service_name" ]; then
 	exit 1
 fi
 
+release_arn=$(cat .releasearn)
 if [ -z "$ECS_SERVICE_TASK_PROCESSES" ] || [[ $ECS_SERVICE_TASK_PROCESSES =~ $deploy_process_type ]]; then
-    release_arn=$(cat .releasearn)
 	provision_target_group_arn=$(cat .tgarn)
     deploy_desired_count=1
 	deploy_autoscaling_policies="cpu=55"
@@ -166,5 +166,41 @@ if [ -z "$ECS_SERVICE_TASK_PROCESSES" ] || [[ $ECS_SERVICE_TASK_PROCESSES =~ $de
 		#--service-namespace ecs \
 		#--scalable-dimension ecs:service:DesiredCount \
 		#--resource-id service/$deploy_cluster_id/$deploy_service_name
+	fi
+fi
+
+if [ "$deploy_process_type" = "scheduledtasks" ]; then
+	echo "----> Deploying scheduled tasks as EventBridge rules"
+	deploy_scheduled_tasks_path=$(grep scheduledtasks Procfile | cut -d':' -f2 | xargs)
+	if [ -f "deploy_scheduled_tasks_path" ]; then
+		while read -r deploy_scheduled_task_line; do
+			deploy_scheduled_task_name=$(echo $deploy_scheduled_task_line | cut -d' ' -f1)
+			aws events put-rule \
+			--name $deploy_scheduled_task_name \
+			--schedule $(echo $deploy_scheduled_task_line | cut -d' ' -f2)
+
+			deploy_command_override=$(echo $deploy_scheduled_task_line | cut -d')' -f2 | xargs | jq --compact-output --raw-input 'split(" ") | tostring')
+			aws events put-targets \
+			--rule $deploy_scheduled_task_name \
+			--targets '[
+				{
+					"Id": "$deploy_scheduled_task_name",
+					"Arn": "arn:aws:ecs:$AWS_REGION:$AWS_ACCOUNT_ID:cluster/$deploy_cluster_id",
+					"RoleArn": "$ECS_TASK_ROLE_ARN",
+					"Input": "{ \"containerOverrides\": [ { \"name\": \"$deploy_repository_slug\", \"command\": $deploy_command_override } ] }",
+					"EcsParameters": {
+						"TaskCount": 1,
+						"TaskDefinitionArn": "$release_arn",
+						"LaunchType": "FARGATE",
+						"NetworkConfiguration": {
+							"awsvpcConfiguration": {
+								"subnets": [ "$ECS_SERVICE_SUBNETS" ],
+								"securityGroups": [ "$ECS_SERVICE_SECURITY_GROUPS" ]
+							}
+						}
+					}
+				}
+			]'
+		done <<< $deploy_scheduled_tasks_path
 	fi
 fi
