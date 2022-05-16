@@ -61,5 +61,6 @@ while IFS= read -r line; do
     --service-name $REPO_SLUG-$BRANCH-$line \
     --cluster-id $ECS_CLUSTER_ID \
     --repository-slug $REPO_SLUG \
+    --account-id $AWS_ACCOUNT_ID \
     $( [ -z "$main_create_service" ] && echo "--create-service")
 done <<< "$main_processes"

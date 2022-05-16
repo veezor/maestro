@@ -2,7 +2,7 @@
 
 set -eo pipefail
 
-VALID_ARGS=$(getopt -o ci:p:r:s: --long create-service,cluster-id:,process-type:,repository-slug:,service-name: -n 'deploy.sh' -- "$@")
+VALID_ARGS=$(getopt -o a:ci:p:r:s: --long account-id:,create-service,cluster-id:,process-type:,repository-slug:,service-name: -n 'deploy.sh' -- "$@")
 if [[ $? -ne 0 ]]; then
 	exit 1;
 fi
@@ -10,6 +10,11 @@ fi
 eval set -- "$VALID_ARGS"
 while [ : ]; do
 	case "$1" in
+        -a | --account-id)
+            deploy_account_id=$2
+            #echo "Account ID is '$2'"
+            shift 2
+            ;;
 		-c | --create-service)
 			deploy_create_service=1
 			#echo "We should create a service"
@@ -62,7 +67,7 @@ if [ -z "$deploy_service_name" ]; then
 fi
 
 release_arn=$(cat .releasearn)
-if [ -z "$ECS_SERVICE_TASK_PROCESSES" ] || [[ $ECS_SERVICE_TASK_PROCESSES =~ $deploy_process_type ]]; then
+if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCESSES" || $ECS_SERVICE_TASK_PROCESSES =~ $deploy_process_type ) ]]; then
 	provision_target_group_arn=$(cat .tgarn)
     deploy_desired_count=1
 	deploy_autoscaling_policies="cpu=55"
@@ -172,35 +177,38 @@ fi
 if [ "$deploy_process_type" = "scheduledtasks" ]; then
 	echo "----> Deploying scheduled tasks as EventBridge rules"
 	deploy_scheduled_tasks_path=$(grep scheduledtasks Procfile | cut -d':' -f2 | xargs)
-	if [ -f "deploy_scheduled_tasks_path" ]; then
-		while read -r deploy_scheduled_task_line; do
-			deploy_scheduled_task_name=$(echo $deploy_scheduled_task_line | cut -d' ' -f1)
+	if [ -f "$deploy_scheduled_tasks_path" ]; then
+        deploy_alb_subnets=$(jq --raw-input --raw-output 'split(",")' <<<"$ECS_SERVICE_SUBNETS")
+        deploy_alb_security_groups=$(jq --raw-input --raw-output 'split(",")' <<<"$ECS_SERVICE_SECURITY_GROUPS")
+		while IFS= read -r line; do
+			deploy_scheduled_task_name=$(echo $line | cut -d' ' -f1)
 			aws events put-rule \
 			--name $deploy_scheduled_task_name \
-			--schedule $(echo $deploy_scheduled_task_line | cut -d' ' -f2)
+			--schedule "$(echo $line | cut -d' ' -f2- | cut -d')' -f1))"
 
-			deploy_command_override=$(echo $deploy_scheduled_task_line | cut -d')' -f2 | xargs | jq --compact-output --raw-input 'split(" ") | tostring')
+			deploy_command_override=$(echo $line | cut -d')' -f2 | xargs)
 			aws events put-targets \
 			--rule $deploy_scheduled_task_name \
-			--targets '[
+			--targets "[
 				{
-					"Id": "$deploy_scheduled_task_name",
-					"Arn": "arn:aws:ecs:$AWS_REGION:$AWS_ACCOUNT_ID:cluster/$deploy_cluster_id",
-					"RoleArn": "$ECS_TASK_ROLE_ARN",
-					"Input": "{ \"containerOverrides\": [ { \"name\": \"$deploy_repository_slug\", \"command\": $deploy_command_override } ] }",
-					"EcsParameters": {
-						"TaskCount": 1,
-						"TaskDefinitionArn": "$release_arn",
-						"LaunchType": "FARGATE",
-						"NetworkConfiguration": {
-							"awsvpcConfiguration": {
-								"subnets": [ "$ECS_SERVICE_SUBNETS" ],
-								"securityGroups": [ "$ECS_SERVICE_SECURITY_GROUPS" ]
+					\"Id\": \"$deploy_scheduled_task_name\",
+					\"Arn\": \"arn:aws:ecs:$AWS_REGION:$deploy_account_id:cluster/$deploy_cluster_id\",
+					\"RoleArn\": \"arn:aws:iam::$deploy_account_id:role/ecsEventsRole\",
+					\"Input\": \"{ \\\"containerOverrides\\\": [ { \\\"name\\\": \\\"$deploy_repository_slug\\\", \\\"command\\\": [ \\\"$deploy_command_override\\\" ] } ] }\",
+					\"EcsParameters\": {
+						\"TaskCount\": 1,
+						\"TaskDefinitionArn\": \"$release_arn\",
+						\"LaunchType\": \"FARGATE\",
+						\"NetworkConfiguration\": {
+							\"awsvpcConfiguration\": {
+								\"Subnets\": $deploy_alb_subnets,
+								\"SecurityGroups\": $deploy_alb_security_groups,
+								\"AssignPublicIp\": \"DISABLED\"
 							}
 						}
 					}
 				}
-			]'
-		done <<< $deploy_scheduled_tasks_path
+			]"
+		done < $deploy_scheduled_tasks_path
 	fi
 fi
