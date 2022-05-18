@@ -155,6 +155,9 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 			else
 				deploy_predefined_metric_specification="{PredefinedMetricType=$deploy_predefined_metric_type}"
 			fi
+			deploy_current_scaling_policy=$(aws application-autoscaling describe-scaling-policies --service-namespace ecs --policy-names $deploy_service_name-$type_of-scaling-policy --query 'ScalingPolicies[0].TargetTrackingScalingPolicyConfiguration')
+			deploy_current_scale_out_cooldown=$(echo $deploy_current_scaling_policy | jq --raw-output '.ScaleOutCooldown // 300')
+			deploy_current_scale_in_cooldown=$(echo $deploy_current_scaling_policy | jq --raw-output '.ScaleInCooldown // 300')
 			echo "----> Registering scaling policies for $deploy_process_type with $deploy_predefined_metric_type=$deploy_target_value"
 			aws application-autoscaling put-scaling-policy \
 			--service-namespace ecs \
@@ -162,7 +165,7 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 			--resource-id service/$deploy_cluster_id/$deploy_service_name \
 			--scalable-dimension ecs:service:DesiredCount \
 			--policy-type TargetTrackingScaling \
-			--target-tracking-scaling-policy-configuration "TargetValue=$deploy_target_value,PredefinedMetricSpecification=$deploy_predefined_metric_specification"
+			--target-tracking-scaling-policy-configuration "TargetValue=$deploy_target_value,PredefinedMetricSpecification=$deploy_predefined_metric_specification,ScaleOutCooldown=$deploy_current_scale_out_cooldown,ScaleInCooldown=$deploy_current_scale_in_cooldown"
 		done
 	#else
 	 	# TODO: remove scalable target if it exists
