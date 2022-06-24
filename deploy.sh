@@ -112,6 +112,28 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 		echo "----> Rolling deployment of $release_arn with $deploy_desired_count task(s) in progress on ECS..."
 	fi
 
+	if [[ ! -z "$NEW_RELIC_API_KEY" && ! -z "$NEW_RELIC_APP_ID" ]]; then
+		echo "----> Registering deployment with NewRelic APM"
+		deploy_newrelic_response=$(curl \
+			 -s \
+			 -o /dev/null \
+		     -X POST "https://api.newrelic.com/v2/applications/$NEW_RELIC_APP_ID/deployments.json" \
+			 -H "Api-Key:$NEW_RELIC_API_KEY" \
+			 -w "%{http_code}" \
+			 -H "Content-Type: application/json" \
+			 -d \
+			"{
+				\"deployment\": {
+					\"revision\": \"${release_arn#*/}\"
+				}
+			}"
+		)
+
+		if test $deploy_newrelic_response -ne 201; then
+			echo "    WARNING: NewRelic deployment registration failed!"
+		fi
+	fi
+
 	if [ ! -z "$deploy_max_autoscaling_count" ]; then
 		echo "----> Registering scalable target for $deploy_process_type"
 		aws application-autoscaling register-scalable-target \
@@ -190,6 +212,7 @@ if [ "$deploy_process_type" = "scheduledtasks" ]; then
 			--schedule "$(echo $line | cut -d' ' -f2- | cut -d')' -f1))"
 
 			deploy_command_override=$(echo $line | cut -d')' -f2 | xargs)
+			echo "----> Defining scheduled task $deploy_scheduled_task_name with command $deploy_command_override"
 			aws events put-targets \
 			--rule $deploy_scheduled_task_name \
 			--targets "[
