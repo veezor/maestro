@@ -2,7 +2,7 @@
 
 set -eo pipefail
 
-VALID_ARGS=$(getopt -o ci:p:r:s: --long create-service,cluster-id:,process-type:,repository-slug:,service-name: -n 'deploy.sh' -- "$@")
+VALID_ARGS=$(getopt -o a:ci:p:r:s: --long account-id:,create-service,cluster-id:,process-type:,repository-slug:,service-name: -n 'deploy.sh' -- "$@")
 if [[ $? -ne 0 ]]; then
 	exit 1;
 fi
@@ -10,6 +10,11 @@ fi
 eval set -- "$VALID_ARGS"
 while [ : ]; do
 	case "$1" in
+        -a | --account-id)
+            deploy_account_id=$2
+            #echo "Account ID is '$2'"
+            shift 2
+            ;;
 		-c | --create-service)
 			deploy_create_service=1
 			#echo "We should create a service"
@@ -61,8 +66,8 @@ if [ -z "$deploy_service_name" ]; then
 	exit 1
 fi
 
-if [ -z "$ECS_SERVICE_TASK_PROCESSES" ] || [[ $ECS_SERVICE_TASK_PROCESSES =~ $deploy_process_type ]]; then
-    release_arn=$(cat .releasearn)
+release_arn=$(cat .releasearn)
+if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCESSES" || $ECS_SERVICE_TASK_PROCESSES =~ $deploy_process_type ) ]]; then
 	provision_target_group_arn=$(cat .tgarn)
     deploy_desired_count=1
 	deploy_autoscaling_policies="cpu=55"
@@ -150,14 +155,17 @@ if [ -z "$ECS_SERVICE_TASK_PROCESSES" ] || [[ $ECS_SERVICE_TASK_PROCESSES =~ $de
 			else
 				deploy_predefined_metric_specification="{PredefinedMetricType=$deploy_predefined_metric_type}"
 			fi
+			deploy_current_scaling_policy=$(aws application-autoscaling describe-scaling-policies --service-namespace ecs --policy-names $deploy_service_name-$type_of-scaling-policy --query 'ScalingPolicies[0].TargetTrackingScalingPolicyConfiguration')
+			deploy_current_scale_out_cooldown=$(echo $deploy_current_scaling_policy | jq --raw-output '.ScaleOutCooldown // 300')
+			deploy_current_scale_in_cooldown=$(echo $deploy_current_scaling_policy | jq --raw-output '.ScaleInCooldown // 300')
 			echo "----> Registering scaling policies for $deploy_process_type with $deploy_predefined_metric_type=$deploy_target_value"
-			aws application-autoscaling put-scaling-policy \
+			deploy_put_scaling_policy_return=$(aws application-autoscaling put-scaling-policy \
 			--service-namespace ecs \
 			--policy-name $deploy_service_name-$type_of-scaling-policy \
 			--resource-id service/$deploy_cluster_id/$deploy_service_name \
 			--scalable-dimension ecs:service:DesiredCount \
 			--policy-type TargetTrackingScaling \
-			--target-tracking-scaling-policy-configuration "TargetValue=$deploy_target_value,PredefinedMetricSpecification=$deploy_predefined_metric_specification"
+			--target-tracking-scaling-policy-configuration "TargetValue=$deploy_target_value,PredefinedMetricSpecification=$deploy_predefined_metric_specification,ScaleOutCooldown=$deploy_current_scale_out_cooldown,ScaleInCooldown=$deploy_current_scale_in_cooldown")
 		done
 	#else
 	 	# TODO: remove scalable target if it exists
@@ -166,5 +174,44 @@ if [ -z "$ECS_SERVICE_TASK_PROCESSES" ] || [[ $ECS_SERVICE_TASK_PROCESSES =~ $de
 		#--service-namespace ecs \
 		#--scalable-dimension ecs:service:DesiredCount \
 		#--resource-id service/$deploy_cluster_id/$deploy_service_name
+	fi
+fi
+
+if [ "$deploy_process_type" = "scheduledtasks" ]; then
+	echo "----> Deploying scheduled tasks as EventBridge rules"
+	deploy_scheduled_tasks_path=$(grep scheduledtasks Procfile | cut -d':' -f2 | xargs)
+	if [ -f "$deploy_scheduled_tasks_path" ]; then
+        deploy_alb_subnets=$(jq --raw-input --raw-output 'split(",")' <<<"$ECS_SERVICE_SUBNETS")
+        deploy_alb_security_groups=$(jq --raw-input --raw-output 'split(",")' <<<"$ECS_SERVICE_SECURITY_GROUPS")
+		while IFS= read -r line; do
+			deploy_scheduled_task_name=$(echo $line | cut -d' ' -f1)
+			aws events put-rule \
+			--name $deploy_scheduled_task_name \
+			--schedule "$(echo $line | cut -d' ' -f2- | cut -d')' -f1))"
+
+			deploy_command_override=$(echo $line | cut -d')' -f2 | xargs)
+			aws events put-targets \
+			--rule $deploy_scheduled_task_name \
+			--targets "[
+				{
+					\"Id\": \"$deploy_scheduled_task_name\",
+					\"Arn\": \"arn:aws:ecs:$AWS_REGION:$deploy_account_id:cluster/$deploy_cluster_id\",
+					\"RoleArn\": \"arn:aws:iam::$deploy_account_id:role/ecsEventsRole\",
+					\"Input\": \"{ \\\"containerOverrides\\\": [ { \\\"name\\\": \\\"$deploy_repository_slug\\\", \\\"command\\\": [ \\\"$deploy_command_override\\\" ] } ] }\",
+					\"EcsParameters\": {
+						\"TaskCount\": 1,
+						\"TaskDefinitionArn\": \"$release_arn\",
+						\"LaunchType\": \"FARGATE\",
+						\"NetworkConfiguration\": {
+							\"awsvpcConfiguration\": {
+								\"Subnets\": $deploy_alb_subnets,
+								\"SecurityGroups\": $deploy_alb_security_groups,
+								\"AssignPublicIp\": \"DISABLED\"
+							}
+						}
+					}
+				}
+			]"
+		done < $deploy_scheduled_tasks_path
 	fi
 fi
