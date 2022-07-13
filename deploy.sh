@@ -93,6 +93,7 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 		--network-configuration "awsvpcConfiguration={subnets=[$ECS_SERVICE_SUBNETS],securityGroups=[$ECS_SERVICE_SECURITY_GROUPS]}" \
 		--desired-count $deploy_desired_count \
 		--enable-execute-command \
+		--deployment-configuration "maximumPercent=200,minimumHealthyPercent=100,deploymentCircuitBreaker={enable=true,rollback=true}" \
 		--propagate-tags TASK_DEFINITION \
 		--tags $deploy_json_workload_resource_tags \
         $( [ "$deploy_process_type" = "web" ] && echo "--load-balancers targetGroupArn=$provision_target_group_arn,containerName=$deploy_repository_slug,containerPort=$PORT")
@@ -105,6 +106,7 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 		--task-definition $release_arn \
 		--network-configuration "awsvpcConfiguration={subnets=[$ECS_SERVICE_SUBNETS],securityGroups=[$ECS_SERVICE_SECURITY_GROUPS]}" \
 		--enable-execute-command \
+		--deployment-configuration "maximumPercent=200,minimumHealthyPercent=100,deploymentCircuitBreaker={enable=true,rollback=true}" \
 		--propagate-tags TASK_DEFINITION \
 		--force-new-deployment \
 		$( [ -z "$deploy_max_autoscaling_count" ] && echo "--desired-count $deploy_desired_count")
