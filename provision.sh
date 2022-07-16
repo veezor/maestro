@@ -55,65 +55,58 @@ if [ "$provision_log_group_exists" -eq "0" ]; then
 	echo "----> Created missing log group for $provision_process_type"
 fi
 
-provision_json_workload_resource_tags=$(jq --raw-input --raw-output '[ split(",") | .[] | "Key=" + split("=")[0] + ",Value=" + split("=")[1] ] | join(" ")' <<<"$WORKLOAD_RESOURCE_TAGS")
 if [ "$provision_process_type" = "web" ]; then
-    # Create a security group for the web process
-    provision_app_sg_name=$provision_branch_name-$provision_process_type-$provision_environment-app
-    provision_app_sg_exists=$(aws ec2 describe-security-groups --filters Name=group-name,Values=$provision_app_sg_name | jq '.SecurityGroups | length' || echo false)
-    if [ "$provision_app_sg_exists" = false ]; then
+    provision_app_sg_name=$provision_repository_slug-$provision_process_type-$provision_branch_name-app
+    provision_app_sg_exists=$(aws ec2 describe-security-groups --filters Name=group-name,Values=$provision_app_sg_name | jq '.SecurityGroups | length')
+    provision_json_workload_resource_tags_to_sg="ResourceType=security-group,Tags=[{$(jq --raw-input --raw-output '[ split(",") | .[] | "Key=" + split("=")[0] + ",Value=" + split("=")[1] ] | join("},{")' <<<"$WORKLOAD_RESOURCE_TAGS")}]"
+    if [ "$provision_app_sg_exists" -eq "0" ]; then
         provision_app_sg_output=$(aws ec2 create-security-group \
         --group-name $provision_app_sg_name \
         --description "Security group for $provision_app_sg_name" \
-        --vpc-id $VPC_ID \
-        --tags $provision_json_workload_resource_tags)
+        --vpc-id $WORKLOAD_VPC_ID \
+        --tag-specifications $provision_json_workload_resource_tags_to_sg)
         echo "----> Provisioned app security group $provision_app_sg_name"
     fi
  
-    # Create a security group for the load balancer
-    provision_alb_sg_name=$provision_branch_name-$provision_process_type-$provision_environment-lb
-    provision_app_sg_exists=$(aws ec2 describe-security-groups --filters Name=group-name,Values=$provision_alb_sg_name | jq '.SecurityGroups | length' || echo false)
-    if [ "$provision_app_sg_exists" = false ]; then
+    provision_alb_sg_name=$provision_repository_slug-$provision_process_type-$provision_branch_name-lb
+    provision_alb_sg_exists=$(aws ec2 describe-security-groups --filters Name=group-name,Values=$provision_alb_sg_name | jq '.SecurityGroups | length')
+    if [ "$provision_alb_sg_exists" -eq "0" ]; then
         provision_alb_sg_output=$(aws ec2 create-security-group \
         --group-name $provision_alb_sg_name \
         --description "Security group for $provision_alb_sg_name" \
-        --vpc-id $VPC_ID \
-        --tags $provision_json_workload_resource_tags)
+        --vpc-id $WORKLOAD_VPC_ID \
+        --tag-specifications $provision_json_workload_resource_tags_to_sg)
         echo "----> Provisioned alb security group $provision_alb_sg_name"
     fi
 
-    # Create a ingress rule for the app security group, port 3000 to alb security group
     if [ -z "$PORT" ]; then
         # TODO: remember to load it from SM
         PORT=3000
     fi
-    provision_app_sg_id=$(aws ec2 describe-security-groups --filters Name=group-name,Values=$provision_app_sg_name | jq '.SecurityGroups[0].GroupId')
-    provision_alb_sg_id=$(aws ec2 describe-security-groups --filters Name=group-name,Values=$provision_alb_sg_name | jq '.SecurityGroups[0].GroupId')
-    provision_app_sg_ingress_rule_exists=$(aws ec2 describe-security-group-rules --filters Name=group-id,Values=$provision_app_sg_id  | jq '.SecurityGroupRules | length' || echo false)
-    if [ "$provision_app_sg_ingress_rule_exists" = false ]; then
+    provision_app_sg_id=$(aws ec2 describe-security-groups --filters Name=group-name,Values=$provision_app_sg_name | jq -j '.SecurityGroups[0].GroupId')
+    provision_alb_sg_id=$(aws ec2 describe-security-groups --filters Name=group-name,Values=$provision_alb_sg_name | jq -j '.SecurityGroups[0].GroupId')
+    provision_app_sg_ingress_rule_exists=$(aws ec2 describe-security-group-rules --filters Name=group-id,Values=$provision_app_sg_id | jq '.SecurityGroupRules | map(select(.IsEgress == false)) | length')
+    if [ "$provision_app_sg_ingress_rule_exists" -eq "0" ]; then
         provision_app_sg_ingress_rule_output=$(aws ec2 authorize-security-group-ingress \
         --group-id $provision_app_sg_id \
         --protocol tcp \
         --port $PORT \
-        --source-group $provision_alb_sg_id \
-        --description "App to LB")
-        echo "----> Provisioned app security group ingress rule for port 3000"
+        --source-group $provision_alb_sg_id)
+        echo "----> Provisioned app security group ingress rule for port $PORT"
     fi
 
-    # Create a ingress rule for the alb security group, HTTP and HTTPS to the world
-    provision_alb_sg_ingress_rule_exists=$(aws ec2 describe-security-group-rules --filters Name=group-id,Values=$provision_alb_sg_id | jq '.SecurityGroupRules | length' || echo false)
-    if [ "$provision_alb_sg_ingress_rule_exists" = false ]; then
+    provision_alb_sg_ingress_rule_exists=$(aws ec2 describe-security-group-rules --filters Name=group-id,Values=$provision_alb_sg_id | jq '.SecurityGroupRules | map(select(.IsEgress == false)) | length')
+    if [ "$provision_alb_sg_ingress_rule_exists" -eq "0" ]; then
         provision_alb_sg_ingress_rule_output=$(aws ec2 authorize-security-group-ingress \
         --group-id $provision_alb_sg_id \
         --protocol tcp \
         --port 80 \
-        --cidr 0.0.0.0/0 \
-        --description "HTTP to world")
+        --cidr 0.0.0.0/0)
         provision_alb_sg_ingress_rule_output=$(aws ec2 authorize-security-group-ingress \
         --group-id $provision_alb_sg_id \
         --protocol tcp \
         --port 443 \
-        --cidr 0.0.0.0/0 \
-        --description "HTTPS to world")
+        --cidr 0.0.0.0/0)
         echo "----> Provisioned alb security group ingress rule for HTTP and HTTPS"
     fi
 
