@@ -117,7 +117,7 @@ if [ "$provision_process_type" = "web" ]; then
             ALB_SCHEME=internet-facing 
         fi
         provision_alb_subnets=$(jq --raw-input --raw-output 'split(",") | join(" ")' <<<"$ALB_SUBNETS")
-        provision_alb_security_groups=$(jq --raw-input --raw-output 'split(",") | join(" ")' <<<"$ALB_SECURITY_GROUPS")
+        provision_alb_security_groups=$(jq --raw-input --raw-output 'split(",") | join(" ")' <<<"$provision_alb_sg_id")
         provision_alb_create_output=$(aws elbv2 create-load-balancer \
         --name ${provision_alb_name:0:32} \
         --subnets $provision_alb_subnets \

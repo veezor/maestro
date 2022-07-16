@@ -2,7 +2,7 @@
 
 set -eo pipefail
 
-VALID_ARGS=$(getopt -o a:ci:p:r:s: --long account-id:,create-service,cluster-id:,process-type:,repository-slug:,service-name: -n 'deploy.sh' -- "$@")
+VALID_ARGS=$(getopt -o a:ci:p:r:s: --long account-id:,create-service,cluster-id:,process-type:,repository-slug:,service-name:,security-group-name: -n 'deploy.sh' -- "$@")
 if [[ $? -ne 0 ]]; then
 	exit 1;
 fi
@@ -40,6 +40,11 @@ while [ : ]; do
 			#echo "Service name is '$2'"
 			shift 2
 			;;
+		-g | --security-group-name)
+			deploy_security_group_name=$2
+			#echo "Security group name is '$2'"
+			shift 2
+			;;
 		--) shift;
 		    break
 		    ;;
@@ -66,6 +71,11 @@ if [ -z "$deploy_service_name" ]; then
 	exit 1
 fi
 
+if [ -z "$deploy_security_group_name" ]; then
+	echo "Error: Missing required parameter --security-group-name"
+	exit 1
+fi
+
 release_arn=$(cat .releasearn)
 if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCESSES" || $ECS_SERVICE_TASK_PROCESSES =~ $deploy_process_type ) ]]; then
 	provision_target_group_arn=$(cat .tgarn)
@@ -83,14 +93,17 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 		PORT=3000
 	fi
 	deploy_json_workload_resource_tags=$(jq --raw-input --raw-output '[ split(",") | .[] | "key=" + split("=")[0] + ",value=" + split("=")[1] ] | join(" ")' <<<"$WORKLOAD_RESOURCE_TAGS")
-    echo "----> Deploying service $deploy_process_type"
+	echo "----> Deploying service $deploy_process_type"
+	if [ "$deploy_process_type" = "web" ]; then
+		deploy_service_security_group_id=$(aws ec2 describe-security-groups --filters Name=group-name,Values=$deploy_security_group_name | jq --raw-output '.SecurityGroups[0].GroupId')
+	fi
 	if [ ! -z "$deploy_create_service" ]; then
 		deploy_ecs_output=$(aws ecs create-service \
 		--cluster $deploy_cluster_id \
 		--service-name $deploy_service_name \
 		--task-definition $release_arn \
 		--launch-type FARGATE \
-		--network-configuration "awsvpcConfiguration={subnets=[$ECS_SERVICE_SUBNETS],securityGroups=[$ECS_SERVICE_SECURITY_GROUPS]}" \
+		--network-configuration "awsvpcConfiguration={subnets=[$ECS_SERVICE_SUBNETS],securityGroups=[$deploy_service_security_group_id]}" \
 		--desired-count $deploy_desired_count \
 		--enable-execute-command \
 		--deployment-configuration "maximumPercent=200,minimumHealthyPercent=100,deploymentCircuitBreaker={enable=true,rollback=true}" \
@@ -104,7 +117,7 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 		--cluster $deploy_cluster_id \
 		--service $deploy_service_name \
 		--task-definition $release_arn \
-		--network-configuration "awsvpcConfiguration={subnets=[$ECS_SERVICE_SUBNETS],securityGroups=[$ECS_SERVICE_SECURITY_GROUPS]}" \
+		--network-configuration "awsvpcConfiguration={subnets=[$ECS_SERVICE_SUBNETS],securityGroups=[$deploy_service_security_group_id]}" \
 		--enable-execute-command \
 		--deployment-configuration "maximumPercent=200,minimumHealthyPercent=100,deploymentCircuitBreaker={enable=true,rollback=true}" \
 		--propagate-tags TASK_DEFINITION \
@@ -206,7 +219,7 @@ if [ "$deploy_process_type" = "scheduledtasks" ]; then
 	deploy_scheduled_tasks_path=$(grep scheduledtasks Procfile | cut -d':' -f2 | xargs)
 	if [ -f "$deploy_scheduled_tasks_path" ]; then
         deploy_alb_subnets=$(jq --raw-input --raw-output 'split(",")' <<<"$ECS_SERVICE_SUBNETS")
-        deploy_alb_security_groups=$(jq --raw-input --raw-output 'split(",")' <<<"$ECS_SERVICE_SECURITY_GROUPS")
+        deploy_alb_security_groups=$(jq --raw-input --raw-output 'split(",")' <<<"$deploy_service_security_group_id")
 		while IFS= read -r line; do
 			deploy_scheduled_task_name=$(echo $line | cut -d' ' -f1)
 			aws events put-rule \

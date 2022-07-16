@@ -74,6 +74,7 @@ while IFS= read -r line; do
 
     deploy.sh --process-type $line \
     --service-name $REPO_SLUG-$BRANCH-$line \
+    --security-group-name $REPO_SLUG-$line-$BRANCH-app \
     --cluster-id $ECS_CLUSTER_ID \
     --repository-slug $REPO_SLUG \
     --account-id $AWS_ACCOUNT_ID \
