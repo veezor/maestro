@@ -1,5 +1,10 @@
 FROM public.ecr.aws/amazonlinux/amazonlinux:2 AS core
 
+ARG TARGETOS
+ARG TARGETARCH
+
+RUN echo "BUILDING FOR $TARGETOS/${TARGETARCH}"
+
 # Install git, SSH, and other utilities
 RUN set -ex \
     && yum install -y openssh-clients \
@@ -21,10 +26,7 @@ RUN useradd codebuild-user
 
 FROM core AS tools
 
-# Install Cloud Native Buildpacks pack CLI
-RUN set -ex \
-   && PACK_VERSION=0.24.0 \
-   && (curl -sSL "https://github.com/buildpacks/pack/releases/download/v${PACK_VERSION}/pack-v${PACK_VERSION}-linux.tgz" | tar -C /usr/local/bin/ --no-same-owner -xzv pack)
+ARG TARGETARCH
 
 # Install Git
 RUN set -ex \
@@ -58,50 +60,63 @@ RUN set -ex \
 
 # AWS Tools
 # https://docs.aws.amazon.com/eks/latest/userguide/install-aws-iam-authenticator.html https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ECS_CLI_installation.html https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
-RUN curl -sS -o /usr/local/bin/aws-iam-authenticator https://amazon-eks.s3.us-west-2.amazonaws.com/1.16.8/2020-04-16/bin/linux/amd64/aws-iam-authenticator \
-    && curl -sS -o /usr/local/bin/kubectl https://amazon-eks.s3.us-west-2.amazonaws.com/1.16.8/2020-04-16/bin/linux/amd64/kubectl \
-    && curl -sS -o /usr/local/bin/ecs-cli https://s3.amazonaws.com/amazon-ecs-cli/ecs-cli-linux-amd64-latest \
-    && curl -sS -o awscliv2.zip https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip \
-    && curl -sS -L https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_Linux_amd64.tar.gz | tar xz -C /usr/local/bin \
+RUN curl -sS -o /usr/local/bin/aws-iam-authenticator "https://amazon-eks.s3.us-west-2.amazonaws.com/1.16.8/2020-04-16/bin/linux/${TARGETARCH}/aws-iam-authenticator" \
+    && curl -sS -o /usr/local/bin/kubectl "https://amazon-eks.s3.us-west-2.amazonaws.com/1.16.8/2020-04-16/bin/linux/${TARGETARCH}/kubectl" \
+    && curl -sS -o /usr/local/bin/ecs-cli "https://s3.amazonaws.com/amazon-ecs-cli/ecs-cli-linux-${TARGETARCH}-latest" \
+    && if [ "$TARGETARCH" = "arm64" ]; then YUMTARGETARCH=aarch64; else YUMTARGETARCH=x86_64; fi \
+    && curl -sS -o awscliv2.zip https://awscli.amazonaws.com/awscli-exe-linux-${YUMTARGETARCH}.zip \
+    && curl -sS -L "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_Linux_${TARGETARCH}.tar.gz" | tar xz -C /usr/local/bin \
     && chmod +x /usr/local/bin/kubectl /usr/local/bin/aws-iam-authenticator /usr/local/bin/ecs-cli /usr/local/bin/eksctl
 
 # Configure SSM & AWS CLI
 RUN set -ex \
-    && yum install -y https://s3.amazonaws.com/amazon-ssm-us-east-1/2.3.1644.0/linux_amd64/amazon-ssm-agent.rpm \
+    && yum install -y "https://s3.amazonaws.com/amazon-ssm-us-east-1/2.3.1644.0/linux_${TARGETARCH}/amazon-ssm-agent.rpm" \
     && unzip awscliv2.zip \
-    && ./aws/install
+    && ./aws/install \
+    && aws --version
 
 #=======================End of layer: tools  =================
 
 FROM tools AS runtimes
 
+ARG TARGETARCH
+
 #Docker 19
 ENV DOCKER_BUCKET="download.docker.com" \
     DOCKER_CHANNEL="stable" \
     DIND_COMMIT="3b5fac462d21ca164b3778647420016315289034" \
-    DOCKER_COMPOSE_VERSION="1.26.0"
+    DOCKER_COMPOSE_VERSION="2.7.0"
 
-ENV DOCKER_SHA256="0f4336378f61ed73ed55a356ac19e46699a995f2aff34323ba5874d131548b9e"
+ENV DOCKER_SHA256_X86_64="0f4336378f61ed73ed55a356ac19e46699a995f2aff34323ba5874d131548b9e"
+ENV DOCKER_SHA256_AARCH64="9cd49fe82f6b7ec413b04daef35bc0c87b01d6da67611e5beef36291538d3145"
 ENV DOCKER_VERSION="19.03.11"
 
 VOLUME /var/lib/docker
 
 RUN set -ex \
-    && curl -fSL "https://${DOCKER_BUCKET}/linux/static/${DOCKER_CHANNEL}/x86_64/docker-${DOCKER_VERSION}.tgz" -o docker.tgz \
+    && if [ "$TARGETARCH" = "arm64" ]; then YUMTARGETARCH=aarch64; else YUMTARGETARCH=x86_64; fi \
+    && if [ "$TARGETARCH" = "arm64" ]; then DOCKER_SHA256=${DOCKER_SHA256_AARCH64}; else DOCKER_SHA256=${DOCKER_SHA256_X86_64}; fi \
+    && curl -fSL "https://${DOCKER_BUCKET}/linux/static/${DOCKER_CHANNEL}/${YUMTARGETARCH}/docker-${DOCKER_VERSION}.tgz" -o docker.tgz \
     && echo "${DOCKER_SHA256} *docker.tgz" | sha256sum -c - \
     && tar --extract --file docker.tgz --strip-components 1  --directory /usr/local/bin/ \
     && rm docker.tgz \
     && docker -v \
-    # set up subuid/subgid so that "--userns-remap=default" works out-of-the-box
+    # set up subuid/subgid so that "--userns-remap=default" works out-of-the-box \
     && groupadd dockremap \
     && groupadd docker \
     && useradd -g dockremap dockremap \
     && echo 'dockremap:165536:65536' >> /etc/subuid \
     && echo 'dockremap:165536:65536' >> /etc/subgid \
     && wget -nv "https://raw.githubusercontent.com/docker/docker/${DIND_COMMIT}/hack/dind" -O /usr/local/bin/dind \
-    && curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-Linux-x86_64 > /usr/local/bin/docker-compose \
+    && curl -L "https://github.com/docker/compose/releases/download/v${DOCKER_COMPOSE_VERSION}/docker-compose-linux-${YUMTARGETARCH}" > /usr/local/bin/docker-compose \
     && chmod +x /usr/local/bin/dind /usr/local/bin/docker-compose \
     && docker-compose version
+
+# Install Cloud Native Buildpacks pack CLI
+RUN set -ex \
+   && PACK_VERSION=0.27.0 \
+   && if [ "$TARGETARCH" = "arm64" ]; then PACK_TARGETARCH=-arm64; fi \
+   && (curl -sSL "https://github.com/buildpacks/pack/releases/download/v${PACK_VERSION}/pack-v${PACK_VERSION}-linux${PACK_TARGETARCH}.tgz" | tar -C /usr/local/bin/ --no-same-owner -xzv pack)
 
 #=======================End of layer: runtimes  =================
 FROM runtimes AS maestro_v1
