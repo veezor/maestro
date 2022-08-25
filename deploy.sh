@@ -83,13 +83,13 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 		PORT=3000
 	fi
 	deploy_json_workload_resource_tags=$(jq --raw-input --raw-output '[ split(",") | .[] | "key=" + split("=")[0] + ",value=" + split("=")[1] ] | join(" ")' <<<"$WORKLOAD_RESOURCE_TAGS")
-    echo "----> Deploying service $deploy_process_type"
+	echo "----> Deploying service $deploy_process_type"
+	
+	if [ -z "$DEPLOYMENT_CIRCUIT_BREAKER_RULE" ]; then
+		DEPLOYMENT_CIRCUIT_BREAKER_RULE='enable=true,rollback=true'
+	fi
+	
 	if [ ! -z "$deploy_create_service" ]; then
-
-		if [ -z "$DEPLOYMENT_CIRCUIT_BREAKER_RULE" ]; then
-			DEPLOYMENT_CIRCUIT_BREAKER_RULE='enable=true,rollback=true'
-		fi
-
 		deploy_ecs_output=$(aws ecs create-service \
 		--cluster $deploy_cluster_id \
 		--service-name $deploy_service_name \
