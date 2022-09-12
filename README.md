@@ -65,6 +65,17 @@ Variable | Description | Examples/Values | Default
  `WORKLOAD_VPC_ID` | VPC ID of the workload | `vpc-ad1234df` <br> `vpc-qw56er78` <br> `vpc-zxcvghjk`
  `DEPLOYMENT_CIRCUIT_BREAKER_RULE` | Enable or disable circuit breaker | `enable=true,rollback=true`
 
+ ### How to emable scheduled tasks
+- Create a file tasks/run_tasks.conf with the schedules on your code:
+  Content example:
+    update-feeed rate(3 hours) bundle exec rake feed:update
+    send-mail rate(12 hours) bundle exec rake mail:send
+    update-invoices rate(6 hours) bundle exec rake client:update_invoices
+
+- Update your project code, adding the following to Procfile:
+  scheduledtasks: scheduledtasks: tasks/run_task.conf
+
+- On codebuild environment variables, increment the ECS_SERVICE_TASK_PROCESSES with "scheduledtasks{256;512}" as described in the table above.
 ### How to build Docker image
 
 Steps to build image
