@@ -210,15 +210,20 @@ if [ "$deploy_process_type" = "scheduledtasks" ]; then
 	echo "----> Deploying scheduled tasks as EventBridge rules"
 	deploy_scheduled_tasks_path=$(grep scheduledtasks Procfile | cut -d':' -f2 | xargs)
 	if [ -f "$deploy_scheduled_tasks_path" ]; then
-        deploy_alb_subnets=$(jq --raw-input --raw-output 'split(",")' <<<"$ECS_SERVICE_SUBNETS")
-        deploy_alb_security_groups=$(jq --raw-input --raw-output 'split(",")' <<<"$ECS_SERVICE_SECURITY_GROUPS")
+		deploy_alb_subnets=$(jq --raw-input --raw-output 'split(",")' <<<"$ECS_SERVICE_SUBNETS")
+		deploy_alb_security_groups=$(jq --raw-input --raw-output 'split(",")' <<<"$ECS_SERVICE_SECURITY_GROUPS")
+
 		while IFS= read -r line; do
-			deploy_scheduled_task_name=$(echo $line | cut -d' ' -f1)
+			if [ -z "$line" ]; then
+				break
+			fi
+
+			deploy_scheduled_task_name=$(echo "$line" | cut -d' ' -f1)
 			aws events put-rule \
 			--name $deploy_scheduled_task_name \
-			--schedule "$(echo $line | cut -d' ' -f2- | cut -d')' -f1))"
+			--schedule "$(echo "$line" | cut -d' ' -f2- | cut -d')' -f1))"
 
-			deploy_command_override=$(echo $line | cut -d')' -f2 | xargs)
+			deploy_command_override=$(echo "$line" | cut -d')' -f2 | xargs)
 			echo "----> Defining scheduled task $deploy_scheduled_task_name with command $deploy_command_override"
 			aws events put-targets \
 			--rule $deploy_scheduled_task_name \
