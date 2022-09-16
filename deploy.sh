@@ -214,11 +214,9 @@ if [ "$deploy_process_type" = "scheduledtasks" ]; then
 		deploy_alb_security_groups=$(jq --raw-input --raw-output 'split(",")' <<<"$ECS_SERVICE_SECURITY_GROUPS")
 
 		while IFS= read -r line; do
-			if [ -z $line ]; then
+			if [ -z "$line" ]; then
 				break
 			fi
-    	# Use $line value literally
-			line=$(echo "$line")
 
 			deploy_scheduled_task_name=$(echo "$line" | cut -d' ' -f1)
 			aws events put-rule \
