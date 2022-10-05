@@ -15,7 +15,7 @@ jobs:
               aws-region: ${{ secrets.AWS_REGION }}          
             
           - name: Authenticate Docker
-            run: aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/h4u2q3r3
+            run: aws ecr-public get-login-password --${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin public.ecr.aws/h4u2q3r3
           
           - name: Build Docker AMI
             run: docker build -t aws-codebuild-cloud-native-buildpacks .
