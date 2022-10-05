@@ -10,8 +10,8 @@ jobs:
           - name: Configure AWS credentials
             uses: aws-actions/configure-aws-credentials@v1
             with:
-              aws-access-key-id: ${{ secrets.ACCESS_KEY_ID }}
-              aws-secret-access-key: ${{ secrets.SECRET_KEY }}
+              aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+              aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
               aws-region: ${{ secrets.AWS_REGION }}          
             
           - name: Authenticate Docker
@@ -19,3 +19,9 @@ jobs:
           
           - name: Build Docker AMI
             run: docker build -t aws-codebuild-cloud-native-buildpacks .
+          
+          - name: Tag Docker AMI
+            run: docker tag aws-codebuild-cloud-native-buildpacks:latest public.ecr.aws/h4u2q3r3/aws-codebuild-cloud-native-buildpacks:latest
+            
+          - name: Push Docker AMI
+            run: docker push public.ecr.aws/h4u2q3r3/aws-codebuild-cloud-native-buildpacks:latest
