@@ -21,7 +21,7 @@ jobs:
             run: docker build -t aws-codebuild-cloud-native-buildpacks .
           
           - name: Tag Docker AMI
-            run: docker tag aws-codebuild-cloud-native-buildpacks:latest public.ecr.aws/h4u2q3r3/aws-codebuild-cloud-native-buildpacks:latest
+            run: docker tag aws-codebuild-cloud-native-buildpacks:latest public.ecr.aws/h4u2q3r3/aws-codebuild-cloud-native-buildpacks:${{ github.event.release.name }} 
             
           - name: Push Docker AMI
-            run: docker push public.ecr.aws/h4u2q3r3/aws-codebuild-cloud-native-buildpacks:latest
+            run: docker push public.ecr.aws/h4u2q3r3/aws-codebuild-cloud-native-buildpacks:${{ github.event.release.name }} 
