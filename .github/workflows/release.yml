@@ -21,10 +21,10 @@ jobs:
             run: aws ecr-public get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin public.ecr.aws/h4u2q3r3
           
           - name: Build Docker AMI
-            run: docker build -t aws-codebuild-cloud-native-buildpacks .
+            run: docker build -t veezor .
           
           - name: Tag Docker AMI
-            run: docker tag aws-codebuild-cloud-native-buildpacks:latest public.ecr.aws/h4u2q3r3/aws-codebuild-cloud-native-buildpacks:${GITHUB_REF:10}
+            run: docker tag veezor:latest public.ecr.aws/h4u2q3r3/veezor:${GITHUB_REF:10}
             
           - name: Push Docker AMI
-            run: docker push public.ecr.aws/h4u2q3r3/aws-codebuild-cloud-native-buildpacks:${GITHUB_REF:10}
+            run: docker push public.ecr.aws/h4u2q3r3/veezor:${GITHUB_REF:10}
