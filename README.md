@@ -91,3 +91,12 @@ To let the Docker daemon start up in the container, build it and run: <br>
 
 >### Contributing
 >Feel free to suggest improvements via pull requests!
+
+### How to make a image deploy
+
+Steps to run [.github/workflows/release.yml](https://github.com/veezor/maestro/blob/main/.github/workflows/release.yml) file and deploy the image:
+
+```
+1- Make a pull request for your changes
+2- After a merge, create a new tag and a new release, following this parameters: tag - "1.0.0"; release - "v1.0.0"
+```
