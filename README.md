@@ -102,5 +102,16 @@ $ docker run -it --entrypoint sh aws/codebuild/pack:1.0 -c bash
 To let the Docker daemon start up in the container, build it and run: <br>
 `docker run -it --privileged aws/codebuild/pack:1.0 bash`
 
+### How to deploy a Docker image
+
+Steps to run [.github/workflows/release.yml](https://github.com/veezor/maestro/blob/main/.github/workflows/release.yml) file and deploy the image:
+
+```
+1- Make a pull request for your changes or bug fixes.
+2- After a merge, create a new tag and a new release, following this parameters: tag - "1.0.0"; release - "v1.0.0"
+```
+
 >### Contributing
 >Feel free to suggest improvements via pull requests!
+
+For other questions, this application follow [semantic versioning parameters](https://semver.org/) that can help you to learn about.
