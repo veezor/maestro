@@ -38,7 +38,20 @@ phases:
 
 ### **Extra Features**
 
-- Able to enable creation of scheduled tasks
+- Creation of scheduled tasks
+- Execution of code before release (database migrations, assets upload, etc)
+
+### **Procfile**
+
+Below you can see a sample `Procfile` that demonstrates some of Maestro's capabilities:
+
+```
+web: bundle exec unicorn -p $PORT -c config/unicorn.rb # binds unicorn via $PORT to an ALB for incoming traffic
+worker: bundle exec sidekiq -C config/sidekiq.yml      # runs sidekiq for processing background jobs
+clock: bundle exec rails runner bin/clock              # loads a cron based service that will trigger commands
+scheduledtasks: tasks.run                              # creates tasks for one-off executions scheduled at tasks.run
+release: bundle exec db:migrate                        # runs database migration right before the release is deployed
+```
 
 ### **Environment Variables**
 

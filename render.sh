@@ -102,7 +102,7 @@ if [ "${render_is_task_definition_array}" == "false" ]; then
 	exit 1
 fi
 
-echo "----> Looking for $render_container_name"
+echo "----> Looking for container named  $render_container_name"
 render_is_container_name_present=$(jq ".containerDefinitions[] | select(.name==\"$render_container_name\")" $render_task_definition)
 if [ -z "$render_is_container_name_present" ]; then
 	echo "Error: '$render_container_name' was not found on task definition"
