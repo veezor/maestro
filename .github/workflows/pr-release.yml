@@ -1,8 +1,8 @@
 name: Create a release pull-request
 on:
-  push:
-    branches:
-      - main
+  pull_request:
+    types: [opened, reopened]
+    
 jobs:
   release_pull_request:
     runs-on: ubuntu-latest
