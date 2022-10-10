@@ -23,11 +23,14 @@ jobs:
           - name: Build Docker AMI
             run: docker build -t maestro .
 
+          - name: Set tag-variable
+            run: echo "GITHUB_TAG=$(cut -d'/' -f3 <<< '$GITHUB_REF')"
+
           - name: Tag Docker AMI
-            run: docker tag maestro:latest public.ecr.aws/h4u2q3r3/maestro:cut -d'/' -f3 <<< "$GITHUB_REF"
+            run: docker tag maestro:latest public.ecr.aws/h4u2q3r3/maestro:"$GITHUB_TAG"
 
           - name: Push Docker AMI
-            run: docker push public.ecr.aws/h4u2q3r3/maestro:cut -d'/' -f3 <<< "$GITHUB_REF"
+            run: docker push public.ecr.aws/h4u2q3r3/maestro:"$GITHUB_TAG"
 
 on:
   pull_request:
@@ -49,4 +52,4 @@ jobs:
               aws-region: ${{ secrets.AWS_REGION }}
              
           - name: Remove Docker image in ECR
-            run: aws ecr batch-delete-image --repository-name my-repo --image-ids imageTag=cut -d'/' -f3 <<< "$GITHUB_REF"
+            run: aws ecr batch-delete-image --repository-name my-repo --image-ids imageTag="$GITHUB_TAG"
