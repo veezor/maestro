@@ -95,7 +95,7 @@ Steps to run [.github/workflows/release.yml](https://github.com/veezor/maestro/b
 
 ```
 1- Make a pull request for your changes or bug fixes.
-2- After a merge, create a new tag and a new release, following this parameters: tag - "1.0.0"; release - "v1.0.0"
+2- After a merge, create a new tag and a new release, following this parameters: tag - "1.0.0."; release - "v1.0.0"
 ```
 
 >### Contributing
