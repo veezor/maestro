@@ -73,3 +73,38 @@ release_task_definition_output=$(aws ecs register-task-definition \
 release_arn=$(jq --raw-output '.taskDefinition.taskDefinitionArn' <<<"$release_task_definition_output")
 echo $release_arn > .releasearn
 echo "----> Created release for $release_process_type process v${release_arn##*:}"
+
+if [ "$release_process_type" == "release" ]; then
+    echo "----> Running release process with docker run"
+	docker pull --quiet $release_image_name
+    docker run \
+	--env-file .env \
+	--rm \
+	--entrypoint release \
+	$release_image_name
+    # release_subnets=$(jq --raw-input --raw-output 'split(",")' <<<"$ECS_SERVICE_SUBNETS")
+    # release_security_groups=$(jq --raw-input --raw-output 'split(",")' <<<"$ECS_SERVICE_SECURITY_GROUPS")
+	# release_task_arn=$(aws ecs run-task \
+	# --cluster $release_cluster_id \
+	# --task-definition $release_arn \
+	# --launch-type FARGATE \
+	# --network-configuration "awsvpcConfiguration={subnets=$release_subnets,securityGroups=$release_security_groups,assignPublicIp=DISABLED}" \
+	# --query 'tasks[].taskArn' \
+	# --output text | rev | cut -d'/' -f1 | rev)
+	# echo "----> Running release process with task ARN: $release_task_arn"
+    # aws ecs wait tasks-stopped \
+	# --cluster $release_cluster_id \
+	# --task $release_task_arn
+	# ecs-cli logs \
+	# --task-id $release_task_arn \
+	# --cluster $release_cluster_id
+	# release_task_exit_code=$(aws ecs describe-tasks \
+	# --cluster $release_cluster_id \
+	# --tasks $release_task_arn \
+	# --query "tasks[0].containers[?name=='$release_repository_slug'].exitCode" \
+	# --output text)
+	# if [ "$release_task_exit_code" != "0" ]; then
+	# 	echo "ERROR: Release process failed with exit code: $release_task_exit_code. Aborting release."
+	# 	exit 1
+	# fi
+fi
