@@ -2,6 +2,9 @@ on:
   pull_request:
     types: [opened, reopened]
 
+env:
+  IMAGE_TAG: "IMAGE_TAG=$(cut -d'/' -f3 <<< $GITHUB_REF)"
+
 jobs:
     register:
         runs-on:
@@ -23,33 +26,8 @@ jobs:
           - name: Build Docker AMI
             run: docker build -t maestro .
 
-          - name: Set tag-variable
-            run: echo "GITHUB_TAG=$(cut -d'/' -f3 <<< $GITHUB_REF)"
-
           - name: Tag Docker AMI
-            run: docker tag maestro:latest public.ecr.aws/h4u2q3r3/maestro:"$GITHUB_TAG"
+            run: docker tag maestro:latest public.ecr.aws/h4u2q3r3/maestro:${{ env.IMAGE_TAG }}
 
           - name: Push Docker AMI
-            run: docker push public.ecr.aws/h4u2q3r3/maestro:"$GITHUB_TAG"
-
-on:
-  pull_request:
-    types: closed
-
-jobs:
-    remove:
-        runs-on:
-            - ubuntu-latest
-        steps:
-          - name: Checkout
-            uses: actions/checkout@v2
-
-          - name: Configure AWS credentials
-            uses: aws-actions/configure-aws-credentials@v1
-            with:
-              aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-              aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-              aws-region: ${{ secrets.AWS_REGION }}
-             
-          - name: Remove Docker image in ECR
-            run: aws ecr batch-delete-image --repository-name my-repo --image-ids imageTag="$GITHUB_TAG"
+            run: docker push public.ecr.aws/h4u2q3r3/maestro:${{ env.IMAGE_TAG }}
