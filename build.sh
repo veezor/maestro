@@ -42,9 +42,8 @@ else
 	--env-file .env \
 	--publish \
 	--trust-builder \
-	--pull-policy if-not-present \
-    $( [[ -z $MAESTRO_NO_CACHE || $MAESTRO_NO_CACHE = "false" ]] && echo "--cache-image ${build_image_name%:*}:cache") \
-    $( [ $MAESTRO_CLEAR_CACHE = "true" ] && echo "--clear-cache --env USE_YARN_CACHE=false --env NODE_MODULES_CACHE=false") \
+    $( [[ -z $MAESTRO_NO_CACHE || $MAESTRO_NO_CACHE = "false" ]] && echo "--pull-policy if-not-present --cache-image ${build_image_name%:*}:cache") \
+    $( [ $MAESTRO_NO_CACHE = "true" ] && echo "--pull-policy always --clear-cache --env USE_YARN_CACHE=false --env NODE_MODULES_CACHE=false") \
     $( [ $MAESTRO_DEBUG = "true" ] && echo "--env NPM_CONFIG_LOGLEVEL=debug --env NODE_VERBOSE=true --verbose")
     docker tag $build_builder_name ${build_image_name%:*}:$build_builder_tag
 	docker push --quiet ${build_image_name%:*}:$build_builder_tag
