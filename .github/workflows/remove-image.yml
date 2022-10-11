@@ -1,9 +1,9 @@
 on:
   pull_request:
-    types: [opened, reopened]
+    types: closed
 
 jobs:
-    register:
+    remove:
         runs-on:
             - ubuntu-latest
         steps:
@@ -17,17 +17,8 @@ jobs:
               aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
               aws-region: ${{ secrets.AWS_REGION }}
 
-          - name: Authenticate Docker
-            run: aws ecr-public get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin public.ecr.aws/h4u2q3r3
-
-          - name: Build Docker AMI
-            run: docker build -t maestro .
-
           - name: Set tag-variable
             run: echo "GITHUB_TAG=$(cut -d'/' -f3 <<< $GITHUB_REF)"
-
-          - name: Tag Docker AMI
-            run: docker tag maestro:latest public.ecr.aws/h4u2q3r3/maestro:"$GITHUB_TAG"
-
-          - name: Push Docker AMI
-            run: docker push public.ecr.aws/h4u2q3r3/maestro:"$GITHUB_TAG"
+             
+          - name: Remove Docker image in ECR
+            run: aws ecr batch-delete-image --repository-name my-repo --image-ids imageTag="$GITHUB_TAG"
