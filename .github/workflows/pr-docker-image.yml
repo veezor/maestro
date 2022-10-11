@@ -18,7 +18,7 @@ jobs:
               aws-region: ${{ secrets.AWS_REGION }}
 
           - name: Set tag-variable
-            run: echo "IMAGE_TAG=$(cut -d'/' -f3 <<< $GITHUB_REF)"
+            run: echo "IMAGE_TAG=$(cut -d'/' -f3 <<< $GITHUB_REF)" >> $GITHUB_ENV
 
           - name: Authenticate Docker
             run: aws ecr-public get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin public.ecr.aws/h4u2q3r3
