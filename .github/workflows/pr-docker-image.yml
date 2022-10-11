@@ -2,9 +2,6 @@ on:
   pull_request:
     types: [opened, reopened]
 
-env:
-  IMAGE_TAG: "IMAGE_TAG=$(cut -d'/' -f3 <<< $GITHUB_REF)"
-
 jobs:
     register:
         runs-on:
@@ -19,6 +16,9 @@ jobs:
               aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
               aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
               aws-region: ${{ secrets.AWS_REGION }}
+
+          - name: Set tag-variable
+            run: echo "IMAGE_TAG=$(cut -d'/' -f3 <<< $GITHUB_REF)" >> $GITHUB_ENV
 
           - name: Authenticate Docker
             run: aws ecr-public get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin public.ecr.aws/h4u2q3r3
