@@ -17,6 +17,10 @@ jobs:
               aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
               aws-region: ${{ secrets.AWS_REGION }}
 
+          - name: Cache Docker layers
+            uses: satackey/action-docker-layer-caching@v0.0.11
+            continue-on-error: true
+
           - name: Set tag-variable
             run: echo "IMAGE_TAG=$(cut -d'/' -f3 <<< $GITHUB_REF)" >> $GITHUB_ENV
 
