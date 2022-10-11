@@ -88,29 +88,21 @@ Variable | Description | Examples/Values | Default
   scheduledtasks: scheduledtasks: tasks/run_task.conf
 
 - On codebuild environment variables, increment the ECS_SERVICE_TASK_PROCESSES with "scheduledtasks{256;512}" as described in the table above.
+
 ### How to build Docker image
 
-Steps to build image
+Steps to build image:
 
 ``` bash
-$ git clone https://github.com/aws/aws-codebuild-cnb-pack.git
-$ docker build -t aws/codebuild/pack:1.0 .
-$ docker run -it --entrypoint sh aws/codebuild/pack:1.0 -c bash
+$ git clone https://github.com/veezor/maestro.git
+$ docker build -t maestro:latest .
 ```
 
-To let the Docker daemon start up in the container, build it and run: <br>
-`docker run -it --privileged aws/codebuild/pack:1.0 bash`
+### Release process
+To trigger [the release workflow](https://github.com/veezor/maestro/blob/main/.github/workflows/release.yml) and deploy the image on AWS public ECR repository use one of the two approaches below:
 
-### How to deploy a Docker image
+1. Create a pull request for your changes or bug fixes. This will deploy a pre-release image that can be tested with the proposed changes.
+2. Create a new tag and a new release, following [semantic versioning parameters](https://semver.org/).
 
-Steps to run [.github/workflows/release.yml](https://github.com/veezor/maestro/blob/main/.github/workflows/release.yml) file and deploy the image:
-
-```
-1- Make a pull request for your changes or bug fixes.
-2- After a merge, create a new tag and a new release, following this parameters: tag - "1.0.0"; release - "v1.0.0"
-```
-
->### Contributing
->Feel free to suggest improvements via pull requests!
-
-For other questions, this application follow [semantic versioning parameters](https://semver.org/) that can help you to learn about.
+### Contributing
+Feel free to suggest improvements by opening pull requests.
