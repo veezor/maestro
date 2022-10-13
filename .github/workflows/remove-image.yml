@@ -18,4 +18,4 @@ jobs:
               aws-region: ${{ secrets.AWS_REGION }}
 
           - name: Remove Docker image in ECR
-            run: aws ecr batch-delete-image --repository-name my-repo --image-ids imageTag=${{ github.event.pull_request.number }}
+            run: aws ecr-public batch-delete-image --repository-name public.ecr.aws/h4u2q3r3/maestro --image-ids imageTag=${{ github.event.pull_request.number }}
