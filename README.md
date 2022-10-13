@@ -95,7 +95,7 @@ Steps to build image:
 
 ``` bash
 $ git clone https://github.com/veezor/maestro.git
-$ docker build -t maestro:latest .
+$ docker build -t maestro:latest ..
 ```
 
 ### Release process
