@@ -17,8 +17,5 @@ jobs:
               aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
               aws-region: ${{ secrets.AWS_REGION }}
 
-          - name: Set tag-variable
-            run: echo "IMAGE_TAG=$(cut -d'/' -f3 <<< $GITHUB_REF)" >> $GITHUB_ENV
-             
           - name: Remove Docker image in ECR
-            run: aws ecr batch-delete-image --repository-name my-repo --image-ids imageTag=${{ env.IMAGE_TAG }}
+            run: aws ecr batch-delete-image --repository-name my-repo --image-ids imageTag=${{ github.event.pull_request.number }}
