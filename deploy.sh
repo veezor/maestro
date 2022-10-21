@@ -90,11 +90,16 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 	fi
 	
 	if [ ! -z "$deploy_create_service" ]; then
+		deploy_ecs_cluster_capacity_providers=$(aws ecs put-cluster-capacity-providers \
+		--cluster $deploy_cluster_id \
+		--capacity-providers FARGATE FARGATE_SPOT \
+		--default-capacity-provider-strategy capacityProvider=FARGATE_SPOT,weight=1
+		)
+
 		deploy_ecs_output=$(aws ecs create-service \
 		--cluster $deploy_cluster_id \
 		--service-name $deploy_service_name \
 		--task-definition $release_arn \
-		--launch-type FARGATE \
 		--network-configuration "awsvpcConfiguration={subnets=[$ECS_SERVICE_SUBNETS],securityGroups=[$ECS_SERVICE_SECURITY_GROUPS]}" \
 		--desired-count $deploy_desired_count \
 		--enable-execute-command \
