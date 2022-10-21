@@ -88,14 +88,21 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 	if [ -z "$DEPLOYMENT_CIRCUIT_BREAKER_RULE" ]; then
 		DEPLOYMENT_CIRCUIT_BREAKER_RULE='enable=true,rollback=true'
 	fi
-	
-	if [ ! -z "$deploy_create_service" ]; then
-		deploy_ecs_cluster_capacity_providers=$(aws ecs put-cluster-capacity-providers \
-		--cluster $deploy_cluster_id \
-		--capacity-providers FARGATE FARGATE_SPOT \
+
+	deploy_cluster_missing=$(aws ecs describe-clusters \
+	--cluster $deploy_cluster_id --query 'failures[].reason' --output text
+	)
+
+	if [ $deploy_cluster_missing ]; then
+		deploy_create_cluster=$(aws ecs create-cluster \
+		--cluster-name $deploy_cluster_id \
+		--tags $deploy_json_workload_resource_tags \
+		--capacity-provider FARGATE FARGATE_SPOT \
 		--default-capacity-provider-strategy capacityProvider=FARGATE_SPOT,weight=1
 		)
+	fi
 
+	if [ ! -z "$deploy_create_service" ]; then
 		deploy_ecs_output=$(aws ecs create-service \
 		--cluster $deploy_cluster_id \
 		--service-name $deploy_service_name \
