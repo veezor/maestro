@@ -90,7 +90,7 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 	fi
 
 	deploy_cluster_missing=$(aws ecs describe-clusters \
-	--cluster $deploy_cluster_id --query 'failures[].reason' --output text
+	--cluster $deploy_cluster_id --query 'failures[?reason==`MISSING`].reason' --output text
 	)
 
 	if [ $deploy_cluster_missing ]; then
