@@ -103,7 +103,7 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 		--capacity-provider FARGATE FARGATE_SPOT \
 		--default-capacity-provider-strategy capacityProvider=FARGATE_SPOT,weight=1
 		)
-		echo "----> First deployment, creting cluster $deploy_cluster_id"
+		echo "----> First deployment detected. Provisioning cluster $deploy_cluster_id"
 	fi
 
 	if [ ! -z "$deploy_create_service" ]; then
