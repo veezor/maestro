@@ -76,7 +76,7 @@ echo "----> Created release for $release_process_type process v${release_arn##*:
 
 if [ "$release_process_type" == "release" ]; then
     echo "----> Running release process with docker run"
-	docker pull --quiet $release_image_name
+	docker pull $release_image_name 2> /dev/null
     docker run \
 	--env-file .env \
 	--rm \
