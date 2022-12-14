@@ -237,7 +237,8 @@ if [ "$deploy_process_type" = "scheduledtasks" ]; then
 			deploy_scheduled_task_name=$(echo "$line" | cut -d' ' -f1)
 			aws events put-rule \
 			--name $deploy_scheduled_task_name \
-			--schedule "$(echo "$line" | cut -d' ' -f2- | cut -d')' -f1))"
+			--schedule "$(echo "$line" | cut -d' ' -f2- | cut -d')' -f1))" \
+			--tags $deploy_json_workload_resource_tags
 
 			deploy_command_override=$(echo "$line" | cut -d')' -f2 | xargs)
 			echo "----> Defining scheduled task $deploy_scheduled_task_name with command $deploy_command_override"
