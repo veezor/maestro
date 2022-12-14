@@ -83,6 +83,8 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 		PORT=3000
 	fi
 	deploy_json_workload_resource_tags=$(jq --raw-input --raw-output '[ split(",") | .[] | "key=" + split("=")[0] + ",value=" + split("=")[1] ] | join(" ")' <<<"$WORKLOAD_RESOURCE_TAGS")
+	deploy_json_workload_resource_tags_captalized=$(jq --raw-input --raw-output '[ split(",") | .[] | "Key=" + split("=")[0] + ",Value=" + split("=")[1] ] | join(" ")' <<<"$WORKLOAD_RESOURCE_TAGS")
+
 	echo "----> Deploying service $deploy_process_type"
 	
 	if [ -z "$DEPLOYMENT_CIRCUIT_BREAKER_RULE" ]; then
@@ -238,7 +240,7 @@ if [ "$deploy_process_type" = "scheduledtasks" ]; then
 			aws events put-rule \
 			--name $deploy_scheduled_task_name \
 			--schedule "$(echo "$line" | cut -d' ' -f2- | cut -d')' -f1))" \
-			--tags $deploy_json_workload_resource_tags
+			--tags $deploy_json_workload_resource_tags_captalized
 
 			deploy_command_override=$(echo "$line" | cut -d')' -f2 | xargs)
 			echo "----> Defining scheduled task $deploy_scheduled_task_name with command $deploy_command_override"
