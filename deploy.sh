@@ -262,7 +262,8 @@ if [ "$deploy_process_type" = "scheduledtasks" ]; then
 								\"SecurityGroups\": $deploy_alb_security_groups,
 								\"AssignPublicIp\": \"DISABLED\"
 							}
-						}
+						},
+						\"PropagateTags\": \"TASK_DEFINITION\"
 					}
 				}
 			]"
