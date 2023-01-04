@@ -1,6 +1,6 @@
 on:
   pull_request:
-    types: [opened, reopened, sychronize]
+    types: [opened, reopened, push]
 
 jobs:
     register:
