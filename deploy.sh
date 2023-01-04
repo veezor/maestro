@@ -164,7 +164,7 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
                 deploy_webhook_parsed_url=${DEPLOY_WEBHOOK_URL/{{CLUSTER}}/$deploy_cluster_id}
                 deploy_webhook_parsed_url=${deploy_web_parsed_url/{{SERVICE}}/$deploy_service_name}
                 deploy_webhook_parsed_url=${deploy_web_parsed_url/{{REPOSITORY}}/$deploy_repository_slug}
-                deploy_webhook_response=$(curl -s -o /dev/null $deploy_webhook_parsed_url)
+                deploy_webhook_response=$(curl -s -o /dev/null -w "%{http_code}" $deploy_webhook_parsed_url)
 
 		if test $deploy_webhook_response -ne 200; then
 			echo "    WARNING: Custom webhook deployment registration failed!"
