@@ -106,11 +106,11 @@ To trigger [the release workflow](https://github.com/veezor/maestro/blob/main/.g
 2. Create a new tag and a new release, following [semantic versioning parameters](https://semver.org/).
 
 ### How to register a deploy with a webhook
-Maestro permit register a deploy with a webhook, but it's necessary has a environment variable based on a default (DEPLOY_WEBHOOK_URL), that need's contains in the URL:
+Maestro allows you to register a deploy with a custom webhook using a standard GET request. To trigger this feature, you need to define `DEPLOY_WEBHOOK_URL` environment variable and its value may contain the following placeholders within the URL:
 
-- CLUSTER -> with this syntax in URL `{{CLUSTER}}`
-- SERVICE -> with this syntax in URL `{{SERVICE}}` 
-- REPOSITORY -> with this syntax in URL `{{REPOSITORY}}`
+- `{{CLUSTER}}` for the cluster's name
+- `{{SERVICE}}` for the service's name
+- `{{REPOSITORY}}` for the repository's slug
 
 ### Contributing
 Feel free to suggest improvements by opening pull requests.
