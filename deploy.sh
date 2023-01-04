@@ -160,20 +160,7 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
                 deploy_webhook_parsed_url=${DEPLOY_WEBHOOK_URL/{{CLUSTER}}/$deploy_cluster_id}
                 deploy_webhook_parsed_url=${deploy_web_parsed_url/{{SERVICE}}/$deploy_cluster_id}
                 deploy_webhook_parsed_url=${deploy_web_parsed_url/{{REPOSITORY}}/$deploy_cluster_id}
-                deploy_webhook_response=$(curl \
-                         -s \
-                         -o /dev/null \
-                     -X POST $deploy_webhook_parsed_url \
-                       #  -H "Api-Key:$NEW_RELIC_API_KEY" \
-                       #  -w "%{http_code}" \
-                       #  -H "Content-Type: application/json" \
-                       #  -d \
-                       # "{
-                       #         \"deployment\": {
-                       #                 \"revision\": \"${release_arn#*/}\"
-                       #         }
-                       # }"
-                )
+                deploy_webhook_response=$(curl $deploy_webhook_parsed_url)
 
 		if test $deploy_newrelic_response -ne 201; then
 			echo "    WARNING: NewRelic deployment registration failed!"
