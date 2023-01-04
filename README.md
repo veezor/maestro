@@ -73,7 +73,7 @@ Variable | Description | Examples/Values | Default
  `MAESTRO_SKIP_BUILD` | Skips build and process following steps if true, leave empty otherwise | `true` 
  `NEW_RELIC_API_KEY` | A user API key from NewRelic for registering deploys | `NRAK-XXXXXXXXXXXXXXXXXXXXXXXXX`
  `NEW_RELIC_APP_ID` | NewRelic APM's application identifier | `123456789` 
- `DEPLOY_WEBHOOK_URL` | A user webhook URL for registering deploys | `https://webhook.url?apikey=api_value&cluster_id={{CLUSTER}}&service={{SERVICE}}&repository={{REPOSITORY}}`
+ `DEPLOY_WEBHOOK_URL` | A custom webhook URL for registering deploys | `https://webhook.url?apikey=api_value&cluster_id={{CLUSTER}}&service={{SERVICE}}&repository={{REPOSITORY}}`
  `WORKLOAD_RESOURCE_TAGS` | Tags related to the workload that will be used to all resources provisioned <br><br> *Examples include tag name (case-insensitive) and value* | `workload=myapp` <br> `environment=staging` <br> `owner=me` 
  `WORKLOAD_VPC_ID` | VPC ID of the workload | `vpc-ad1234df` <br> `vpc-qw56er78` <br> `vpc-zxcvghjk`
  `DEPLOYMENT_CIRCUIT_BREAKER_RULE` | Enable or disable circuit breaker | `enable=true,rollback=true`
