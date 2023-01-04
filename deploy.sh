@@ -154,17 +154,17 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 			}"
 		)
 
-		# DEPLOY_WEBHOOK_URL="https://hook.us1.make.com/dt8elcq7atff1851avee324lel05vcgm?apikey=a1b2c3d4&cluster={{CLUSTER}}&service={{SERVICE}}&repository={{REPOSITORY}}"
-        if [[ ! -z "$DEPLOY_WEBHOOK_URL" ]]; then
-                echo "----> Registering deployment with custom deployment webhook"
-                deploy_webhook_parsed_url=${DEPLOY_WEBHOOK_URL/{{CLUSTER}}/$deploy_cluster_id}
-                deploy_webhook_parsed_url=${deploy_web_parsed_url/{{SERVICE}}/$deploy_cluster_id}
-                deploy_webhook_parsed_url=${deploy_web_parsed_url/{{REPOSITORY}}/$deploy_cluster_id}
-                deploy_webhook_response=$(curl $deploy_webhook_parsed_url)
-
 		if test $deploy_newrelic_response -ne 201; then
 			echo "    WARNING: NewRelic deployment registration failed!"
 		fi
+	fi
+
+        if [[ ! -z "$DEPLOY_WEBHOOK_URL" ]]; then
+                echo "----> Registering deployment with custom deployment webhook"
+                deploy_webhook_parsed_url=${DEPLOY_WEBHOOK_URL/{{CLUSTER}}/$deploy_cluster_id}
+                deploy_webhook_parsed_url=${deploy_web_parsed_url/{{SERVICE}}/$deploy_service_name}
+                deploy_webhook_parsed_url=${deploy_web_parsed_url/{{REPOSITORY}}/$deploy_repository_slug}
+                deploy_webhook_response=$(curl $deploy_webhook_parsed_url)
 	fi
 
 	if [ ! -z "$deploy_max_autoscaling_count" ]; then
