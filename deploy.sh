@@ -154,6 +154,27 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 			}"
 		)
 
+		# DEPLOY_WEBHOOK_URL="https://hook.us1.make.com/dt8elcq7atff1851avee324lel05vcgm?apikey=a1b2c3d4&cluster={{CLUSTER}}&service={{SERVICE}}&repository={{REPOSITORY}}"
+        if [[ ! -z "$DEPLOY_WEBHOOK_URL" ]]; then
+                echo "----> Registering deployment with custom deployment webhook"
+                deploy_webhook_parsed_url=${DEPLOY_WEBHOOK_URL/{{CLUSTER}}/$deploy_cluster_id}
+                deploy_webhook_parsed_url=${deploy_web_parsed_url/{{SERVICE}}/$deploy_cluster_id}
+                deploy_webhook_parsed_url=${deploy_web_parsed_url/{{REPOSITORY}}/$deploy_cluster_id}
+                deploy_webhook_response=$(curl \
+                         -s \
+                         -o /dev/null \
+                     -X POST $deploy_webhook_parsed_url \
+                       #  -H "Api-Key:$NEW_RELIC_API_KEY" \
+                       #  -w "%{http_code}" \
+                       #  -H "Content-Type: application/json" \
+                       #  -d \
+                       # "{
+                       #         \"deployment\": {
+                       #                 \"revision\": \"${release_arn#*/}\"
+                       #         }
+                       # }"
+                )
+
 		if test $deploy_newrelic_response -ne 201; then
 			echo "    WARNING: NewRelic deployment registration failed!"
 		fi
