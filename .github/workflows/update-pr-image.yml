@@ -18,7 +18,7 @@ jobs:
               aws-region: ${{ secrets.AWS_REGION }}
 
           - name: Remove old Docker AMI in ECR
-            run: aws ecr-public batch-delete-image --repository-name maestro --image-ids ImageTag=${{ github.event.pull_request.number }}
+            run: aws ecr-public batch-delete-image --repository-name maestro --image-ids imageTag=${{ github.event.pull_request.number }}
 
           - name: Cache Docker layers
             uses: satackey/action-docker-layer-caching@v0.0.11
