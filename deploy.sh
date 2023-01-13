@@ -250,13 +250,7 @@ if [ "$deploy_process_type" = "scheduledtasks" ]; then
 				break
 			fi
 
-			deploy_scheduled_task_name=$(echo "$line" | cut -d' ' -f1)-$deploy_cluster_id_hash
-
-			if [ ${#deploy_scheduled_task_name} -gt 64 ]; then
-  			echo "ERROR: scheduled task name ($deploy_scheduled_task_name) is too long, it \
-  						must be less than or equal to 64 characters."
-  			exit 1
-			fi
+			deploy_scheduled_task_name=$(echo "$deploy_cluster_id_hash-$(echo "$line" | cut -d' ' -f1)" | cut -c1-64)
 
 			aws events put-rule \
 			--name $deploy_scheduled_task_name \
