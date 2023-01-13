@@ -69,7 +69,7 @@ fi
 release_arn=$(cat .releasearn)
 if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCESSES" || $ECS_SERVICE_TASK_PROCESSES =~ $deploy_process_type ) ]]; then
 	provision_target_group_arn=$(cat .tgarn)
-    deploy_desired_count=1
+	deploy_desired_count=1
 	deploy_autoscaling_policies="cpu=55"
 	deploy_desired_count_regex="$deploy_process_type[{};0-9]{0,}:([0-9]+)-{0,}([0-9]{0,})\[{0,}([;=0-9a-z]{0,})\]{0,}"
 	if [[ $ECS_SERVICE_TASK_PROCESSES =~ $deploy_desired_count_regex ]]; then
@@ -236,6 +236,8 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 	fi
 fi
 
+deploy_cluster_id_hash=$(echo -n $deploy_cluster_id | md5sum | cut -c1-6)
+
 if [ "$deploy_process_type" = "scheduledtasks" ]; then
 	echo "----> Deploying scheduled tasks as EventBridge rules"
 	deploy_scheduled_tasks_path=$(grep scheduledtasks Procfile | cut -d':' -f2 | xargs)
@@ -248,7 +250,14 @@ if [ "$deploy_process_type" = "scheduledtasks" ]; then
 				break
 			fi
 
-			deploy_scheduled_task_name=$(echo "$line" | cut -d' ' -f1)
+			deploy_scheduled_task_name=$(echo "$line" | cut -d' ' -f1)-$deploy_cluster_id_hash
+
+			if [ ${#deploy_scheduled_task_name} -gt 64 ]; then
+  			echo "ERROR: scheduled task name ($deploy_scheduled_task_name) is too long, it \
+  						must be less than or equal to 64 characters."
+  			exit 1
+			fi
+
 			aws events put-rule \
 			--name $deploy_scheduled_task_name \
 			--schedule "$(echo "$line" | cut -d' ' -f2- | cut -d')' -f1))" \
