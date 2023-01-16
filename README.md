@@ -111,6 +111,10 @@ Maestro allows you to register a deploy with a custom webhook using a standard `
 - `{{CLUSTER}}` for the cluster's name
 - `{{SERVICE}}` for the service's name
 - `{{REPOSITORY}}` for the repository's slug
+- `{{BUILD_LINK}}` for the build's log link
+- `{{REPO_LINK}}` for the repository's link
+- `{{CLUSTER_LINK}}` for the cluster's link
+
 
 ### Contributing
 Feel free to suggest improvements by opening pull requests.
