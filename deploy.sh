@@ -164,7 +164,7 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
                 deploy_webhook_parsed_url=${DEPLOY_WEBHOOK_URL/\{\{CLUSTER\}\}/$deploy_cluster_id}
                 deploy_webhook_parsed_url=${deploy_webhook_parsed_url/\{\{SERVICE\}\}/$deploy_service_name}
                 deploy_webhook_parsed_url=${deploy_webhook_parsed_url/\{\{REPOSITORY\}\}/$deploy_repository_slug}
-		deploy_build_id=$(aws codebuild list-builds --query 'ids[0]' | cut -d':' -f 2)
+		deploy_build_id=$(aws codebuild list-builds --query 'ids[0]' --profile Buildpacks | cut -d':' -f 2 | cut -d'"' -f 1)
 		deploy_repo_link=$(aws codebuild batch-get-builds --ids $deploy_cluster_id-image-build:$deploy_build_id --query 'builds[*].source.location')
 		deploy_codebuild_id=$(aws codebuild batch-get-builds --ids $deploy_cluster_id-image-build:$deploy_build_id --query 'builds[*].serviceRole' | cut -d':' -f 5)
 		deploy_codebuild_link=$("https://us-east-1.console.aws.amazon.com/codesuite/codebuild/$deploy_codebuild_id/projects/$deploy_cluster_id/history?region=us-east-1")
