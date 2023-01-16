@@ -169,7 +169,10 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 		deploy_codebuild_id=$(aws codebuild batch-get-builds --ids $deploy_cluster_id-image-build:$deploy_build_id --query 'builds[*].serviceRole' | cut -d':' -f 5)
 		deploy_codebuild_link=$("https://us-east-1.console.aws.amazon.com/codesuite/codebuild/$deploy_codebuild_id/projects/$deploy_cluster_id/history?region=us-east-1")
 		deploy_cluster_link=$("https://us-east-1.console.aws.amazon.com/ecs/home?region=us-east-1#/clusters/$deploy_cluster_id/services")
-		deploy_webhook_response=$(curl -s -o /dev/null -w "%{http_code}" $deploy_webhook_parsed_url&$deploy_repo_link&$deploy_codebuild_link&$deploy_cluster_link)
+                deploy_webhook_parsed_url=${deploy_webhook_parsed_url/\{\{REPO_LINK\}\}/$deploy_repo_link}
+                deploy_webhook_parsed_url=${deploy_webhook_parsed_url/\{\{BUILD_LINK\}\}/$deploy_codebuild_link}
+                deploy_webhook_parsed_url=${deploy_webhook_parsed_url/\{\{CLUSTER_LINK\}\}/$deploy_cluster_link}
+		deploy_webhook_response=$(curl -s -o /dev/null -w "%{http_code}" $deploy_webhook_parsed_url)
 
 		if test $deploy_webhook_response -ne 200; then
 			echo "    WARNING: Custom webhook deployment registration failed!"
