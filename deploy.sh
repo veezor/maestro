@@ -164,7 +164,15 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 		deploy_webhook_parsed_url=${DEPLOY_WEBHOOK_URL/\{\{CLUSTER\}\}/$deploy_cluster_id}
 		deploy_webhook_parsed_url=${deploy_webhook_parsed_url/\{\{SERVICE\}\}/$deploy_service_name}
 		deploy_webhook_parsed_url=${deploy_webhook_parsed_url/\{\{REPOSITORY\}\}/$deploy_repository_slug}
-		deploy_build_id=$(aws codebuild list-builds --query 'ids[0]' | cut -d':' -f 2 | cut -d'"' -f 1)
+		deploy_build_ids=$(aws codebuild list-builds --query 'ids[0:10]')
+		jq -s '.[]' <<< $deploy_build_ids | while read i; do
+			deploy_line_parser=$(echo $i | cut -d':' -f 1 | cut -d'"' -f 2)
+			if [ $deploy_line_parser == $deploy_service_name ]
+			then
+				$deploy_build_id=$(echo $i | cut -d':' -f 2 | cut -d'"' -f 1)
+				break
+			fi
+		done
 		deploy_repo_link=$(aws codebuild batch-get-builds --ids $deploy_cluster_id-image-build:$deploy_build_id --query 'builds[0].source.location')
 		deploy_codebuild_id=$(aws codebuild batch-get-builds --ids $deploy_cluster_id-image-build:$deploy_build_id --query 'builds[0].serviceRole' | cut -d':' -f 5)
 		deploy_codebuild_link="https://$AWS_REGION.console.aws.amazon.com/codesuite/codebuild/$deploy_codebuild_id/projects/$deploy_cluster_id/history?region=$AWS_REGION"
