@@ -169,7 +169,7 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 			deploy_line_parser=$(echo $i | cut -d':' -f 1 | cut -d'"' -f 2)
 			if [ $deploy_line_parser == $deploy_service_name ]
 			then
-				$deploy_build_id=$(echo $i | cut -d':' -f 2 | cut -d'"' -f 1)
+				deploy_build_id=$(echo $i | cut -d':' -f 2 | cut -d'"' -f 1)
 				break
 			fi
 		done
