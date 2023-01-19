@@ -168,10 +168,13 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 		jq -s '.[]' <<< $deploy_build_ids | while read i; do
 			deploy_line_parser=$(echo $i | cut -d':' -f 1 | cut -d'"' -f 2)
 			if [ $deploy_line_parser == "$deploy_cluster_id-image-build" ]
+			echo "Line-parser: $deploy_line_parser"
+			echo "Cluster_id: $deploy_cluster_id"
 			then
 				deploy_build_id=$(echo $i | cut -d':' -f 2 | cut -d'"' -f 1)
 				break
 			fi
+			echo "Build-id: $deploy_build_id"
 		done
 		deploy_repo_link=$(aws codebuild batch-get-builds --ids $deploy_cluster_id-image-build:$deploy_build_id --query 'builds[0].source.location')
 		deploy_codebuild_id=$(aws codebuild batch-get-builds --ids $deploy_cluster_id-image-build:$deploy_build_id --query 'builds[0].serviceRole' | cut -d':' -f 5)
