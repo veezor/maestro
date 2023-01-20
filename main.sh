@@ -27,8 +27,6 @@ if [[ ! -z "$DEPLOY_WEBHOOK_URL" ]]; then
     deploy_webhook_parsed_url=${DEPLOY_WEBHOOK_URL/\{\{CLUSTER\}\}/$ECS_CLUSTER_ID}
     deploy_webhook_parsed_url=${deploy_webhook_parsed_url/\{\{REPOSITORY\}\}/$REPO_SLUG}
 
-    echo "CODEBUILD_BUILD_ID: $CODEBUILD_BUILD_ID"
-
     deploy_repo_link=$(aws codebuild batch-get-builds --ids $CODEBUILD_BUILD_ID --query 'builds[0].source.location' --output text)
     deploy_codebuild_link="https://$AWS_REGION.console.aws.amazon.com/codesuite/codebuild/$AWS_ACCOUNT_ID/projects/$ECS_CLUSTER_ID/history?region=$AWS_REGION"
     deploy_cluster_link="https://$AWS_REGION.console.aws.amazon.com/ecs/v2/clusters/$ECS_CLUSTER_ID/services?region=$AWS_REGION"
