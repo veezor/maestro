@@ -2,16 +2,6 @@
 
 set -eo pipefail
 
-if [ ! -z "$MAESTRO_BRANCH_OVERRIDE" ]; then
-    BRANCH=$MAESTRO_BRANCH_OVERRIDE
-else
-    BRANCH=$CODEBUILD_SOURCE_VERSION
-fi
-
-echo "AWS CLI Version: $(aws --version)"
-echo "Buildpack CLI Version: $(pack --version)"
-
-AWS_ACCOUNT_ID=$(cut -d':' -f5 <<<$CODEBUILD_BUILD_ARN)
 if [ -z "$REPO_SLUG" ]; then
     REPO_SLUG=${CODEBUILD_SOURCE_REPO_URL#*://*/}
     REPO_SLUG=${REPO_SLUG,,}
@@ -19,6 +9,42 @@ fi
 REPO_SLUG=${REPO_SLUG%.git}
 REPO_SLUG=${REPO_SLUG/\//-}
 REPO_SLUG=${REPO_SLUG/\./-}
+
+if [ ! -z "$MAESTRO_BRANCH_OVERRIDE" ]; then
+    BRANCH=$MAESTRO_BRANCH_OVERRIDE
+else
+    BRANCH=$CODEBUILD_SOURCE_VERSION
+fi
+
+if [ -z "$ECS_CLUSTER_ID" ]; then
+    export ECS_CLUSTER_ID=$REPO_SLUG-$BRANCH
+fi
+
+AWS_ACCOUNT_ID=$(cut -d':' -f5 <<<$CODEBUILD_BUILD_ARN)
+
+if [[ ! -z "$DEPLOY_WEBHOOK_URL" ]]; then
+    echo "----> Registering deployment with custom deployment webhook"
+    deploy_webhook_parsed_url=${DEPLOY_WEBHOOK_URL/\{\{CLUSTER\}\}/$ECS_CLUSTER_ID}
+    deploy_webhook_parsed_url=${deploy_webhook_parsed_url/\{\{REPOSITORY\}\}/$REPO_SLUG}
+
+    deploy_repo_link=$(aws codebuild batch-get-builds --ids $CODEBUILD_BUILD_ID --query 'builds[0].source.location' --output text)
+    deploy_codebuild_link="https://$AWS_REGION.console.aws.amazon.com/codesuite/codebuild/$AWS_ACCOUNT_ID/projects/$ECS_CLUSTER_ID/history?region=$AWS_REGION"
+    deploy_cluster_link="https://$AWS_REGION.console.aws.amazon.com/ecs/v2/clusters/$ECS_CLUSTER_ID/services?region=$AWS_REGION"
+
+    deploy_webhook_parsed_url=${deploy_webhook_parsed_url/\{\{REPO_LINK\}\}/$deploy_repo_link}
+    deploy_webhook_parsed_url=${deploy_webhook_parsed_url/\{\{BUILD_LINK\}\}/$deploy_codebuild_link}
+    deploy_webhook_parsed_url=${deploy_webhook_parsed_url/\{\{CLUSTER_LINK\}\}/$deploy_cluster_link}
+
+    deploy_webhook_response=$(curl -s -o /dev/null -w "%{http_code}" $deploy_webhook_parsed_url)
+
+    if test $deploy_webhook_response -ne 200; then
+        echo "    WARNING: Custom webhook deployment registration failed!"
+    fi
+fi
+
+echo "AWS CLI Version: $(aws --version)"
+echo "Buildpack CLI Version: $(pack --version)"
+
 COMMIT_SHORT=$(head -c 8 <<<$CODEBUILD_RESOLVED_SOURCE_VERSION)
 IMAGE_NAME=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$REPO_SLUG-$BRANCH:$COMMIT_SHORT
 
@@ -47,10 +73,6 @@ if [ -z "$MAESTRO_SKIP_BUILD" ]; then
     fi
 else
     echo "----> Skipping build and running further steps..."
-fi
-
-if [ -z "$ECS_CLUSTER_ID" ]; then
-  export ECS_CLUSTER_ID=$REPO_SLUG-$BRANCH
 fi
 
 main_processes=$(pack inspect $IMAGE_NAME | sed '0,/^Processes:$/d' | tail -n +2 | cut -d' ' -f3)
