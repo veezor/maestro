@@ -1,7 +1,6 @@
 #!/bin/bash
 
 set -eo pipefail
-set -x
 
 if [ -z "$REPO_SLUG" ]; then
     REPO_SLUG=${CODEBUILD_SOURCE_REPO_URL#*://*/}
