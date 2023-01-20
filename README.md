@@ -109,11 +109,10 @@ To trigger [the release workflow](https://github.com/veezor/maestro/blob/main/.g
 Maestro allows you to register a deploy with a custom webhook using a standard `GET` request which expects a `200` response. To trigger this feature, you need to define `DEPLOY_WEBHOOK_URL` environment variable and its value may contain the following placeholders within the URL:
 
 - `{{CLUSTER}}` for the cluster's name
-- `{{SERVICE}}` for the service's name
-- `{{REPOSITORY}}` for the repository's slug
-- `{{BUILD_LINK}}` for the build's log link
-- `{{REPO_LINK}}` for the repository's link
 - `{{CLUSTER_LINK}}` for the cluster's link
+- `{{REPOSITORY}}` for the repository's slug
+- `{{REPO_LINK}}` for the repository's link
+- `{{BUILD_LINK}}` for the build's log link
 
 
 ### Contributing
