@@ -22,22 +22,22 @@ fi
 
 AWS_ACCOUNT_ID=$(cut -d':' -f5 <<<$CODEBUILD_BUILD_ARN)
 
-if [[ ! -z "$DEPLOY_WEBHOOK_URL" ]]; then
+if [[ ! -z "$MAIN_WEBHOOK_URL" ]]; then
     echo "----> Registering deployment with custom deployment webhook"
-    deploy_webhook_parsed_url=${DEPLOY_WEBHOOK_URL/\{\{CLUSTER\}\}/$ECS_CLUSTER_ID}
-    deploy_webhook_parsed_url=${deploy_webhook_parsed_url/\{\{REPOSITORY\}\}/$REPO_SLUG}
+    main_webhook_parsed_url=${MAIN_WEBHOOK_URL/\{\{CLUSTER\}\}/$ECS_CLUSTER_ID}
+    main_webhook_parsed_url=${main_webhook_parsed_url/\{\{REPOSITORY\}\}/$REPO_SLUG}
 
-    deploy_repo_link=$(aws codebuild batch-get-builds --ids $CODEBUILD_BUILD_ID --query 'builds[0].source.location' --output text)
-    deploy_codebuild_link="https://$AWS_REGION.console.aws.amazon.com/codesuite/codebuild/$AWS_ACCOUNT_ID/projects/$ECS_CLUSTER_ID/history?region=$AWS_REGION"
-    deploy_cluster_link="https://$AWS_REGION.console.aws.amazon.com/ecs/v2/clusters/$ECS_CLUSTER_ID/services?region=$AWS_REGION"
+    main_repo_link=$(aws codebuild batch-get-builds --ids $CODEBUILD_BUILD_ID --query 'builds[0].source.location' --output text)
+    main_codebuild_link="https://$AWS_REGION.console.aws.amazon.com/codesuite/codebuild/$AWS_ACCOUNT_ID/projects/$ECS_CLUSTER_ID/history?region=$AWS_REGION"
+    main_cluster_link="https://$AWS_REGION.console.aws.amazon.com/ecs/v2/clusters/$ECS_CLUSTER_ID/services?region=$AWS_REGION"
 
-    deploy_webhook_parsed_url=${deploy_webhook_parsed_url/\{\{REPO_LINK\}\}/$deploy_repo_link}
-    deploy_webhook_parsed_url=${deploy_webhook_parsed_url/\{\{BUILD_LINK\}\}/$deploy_codebuild_link}
-    deploy_webhook_parsed_url=${deploy_webhook_parsed_url/\{\{CLUSTER_LINK\}\}/$deploy_cluster_link}
+    main_webhook_parsed_url=${main_webhook_parsed_url/\{\{REPO_LINK\}\}/$main_repo_link}
+    main_webhook_parsed_url=${main_webhook_parsed_url/\{\{BUILD_LINK\}\}/$main_codebuild_link}
+    main_webhook_parsed_url=${main_webhook_parsed_url/\{\{CLUSTER_LINK\}\}/$main_cluster_link}
 
-    deploy_webhook_response=$(curl -s -o /dev/null -w "%{http_code}" $deploy_webhook_parsed_url)
+    deploy_webhook_response=$(curl -s -o /dev/null -w "%{http_code}" $main_webhook_parsed_url)
 
-    if test $deploy_webhook_response -ne 200; then
+    if test $main_webhook_response -ne 200; then
         echo "    WARNING: Custom webhook deployment registration failed!"
     fi
 fi
