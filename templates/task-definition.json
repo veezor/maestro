@@ -30,7 +30,7 @@
       ],
       "entryPoint": ["web"],
       "command": [],
-      "stoptimeout": ""
+      "stopTimeout": 30
     }
   ],
   "requiresCompatibilities": [
