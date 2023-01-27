@@ -29,7 +29,8 @@
           }
       ],
       "entryPoint": ["web"],
-      "command": []
+      "command": [],
+      "stopTimeout": 30
     }
   ],
   "requiresCompatibilities": [
