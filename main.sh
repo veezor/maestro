@@ -22,7 +22,7 @@ fi
 
 AWS_ACCOUNT_ID=$(cut -d':' -f5 <<<$CODEBUILD_BUILD_ARN)
 
-if [[ ! -z "$MAIN_WEBHOOK_URL" ]]; then
+if [[ ! -z "$DEPLOY_WEBHOOK_URL" ]]; then
     echo "----> Registering deployment with custom deployment webhook"
     main_webhook_parsed_url=${MAIN_WEBHOOK_URL/\{\{CLUSTER\}\}/$ECS_CLUSTER_ID}
     main_webhook_parsed_url=${main_webhook_parsed_url/\{\{REPOSITORY\}\}/$REPO_SLUG}
@@ -35,7 +35,7 @@ if [[ ! -z "$MAIN_WEBHOOK_URL" ]]; then
     main_webhook_parsed_url=${main_webhook_parsed_url/\{\{BUILD_LINK\}\}/$main_codebuild_link}
     main_webhook_parsed_url=${main_webhook_parsed_url/\{\{CLUSTER_LINK\}\}/$main_cluster_link}
 
-    deploy_webhook_response=$(curl -s -o /dev/null -w "%{http_code}" $main_webhook_parsed_url)
+    main_webhook_response=$(curl -s -o /dev/null -w "%{http_code}" $main_webhook_parsed_url)
 
     if test $main_webhook_response -ne 200; then
         echo "    WARNING: Custom webhook deployment registration failed!"
