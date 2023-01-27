@@ -87,8 +87,8 @@ if [ ! -f "$render_task_definition" ] || [ ! -s "$render_task_definition" ]; the
 	cp /templates/task-definition.json $render_task_definition
 	cat <<< $(jq ".containerDefinitions[]=(.containerDefinitions[] | select(.name==\"placeholder\") | .name=\"$render_container_name\")" $render_task_definition) > $render_task_definition
 
-	if [ -z "$ECS_CONTAINER_STOP_TIMEOUT" ]; then
-		cat <<< $(jq ".containerDefinitions[]=(.containerDefinitions[] | .stoptimeout=\"$ECS_CONTAINER_STOP_TIMEOUT\")" $render_task_definition) > $render_task_definition
+	if [ ! -z "$ECS_CONTAINER_STOP_TIMEOUT" ]; then
+		cat <<< $(jq ".containerDefinitions[]=(.containerDefinitions[] | .stopTimeout=$ECS_CONTAINER_STOP_TIMEOUT)" $render_task_definition) > $render_task_definition
 	fi
 fi
 
