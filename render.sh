@@ -84,8 +84,12 @@ fi
 echo "----> Checking Task Definition file '$render_task_definition' exists"
 if [ ! -f "$render_task_definition" ] || [ ! -s "$render_task_definition" ]; then
 	echo "File $render_task_definition was not found or is empty! Creating one based on the standard template..."
-    cp /templates/task-definition.json $render_task_definition
+	cp /templates/task-definition.json $render_task_definition
 	cat <<< $(jq ".containerDefinitions[]=(.containerDefinitions[] | select(.name==\"placeholder\") | .name=\"$render_container_name\")" $render_task_definition) > $render_task_definition
+
+	if [ -z "$ECS_CONTAINER_STOP_TIMEOUT" ]; then
+		cat <<< $(jq ".containerDefinitions[]=(.containerDefinitions[] | .stoptimeout=\"$ECS_CONTAINER_STOP_TIMEOUT\")" $render_task_definition) > $render_task_definition
+	fi
 fi
 
 echo "----> Checking Task Definition file '$render_task_definition' has valid JSON"
