@@ -24,7 +24,7 @@ AWS_ACCOUNT_ID=$(cut -d':' -f5 <<<$CODEBUILD_BUILD_ARN)
 
 if [[ ! -z "$DEPLOY_WEBHOOK_URL" ]]; then
     echo "----> Registering deployment with custom deployment webhook"
-    main_webhook_parsed_url=${MAIN_WEBHOOK_URL/\{\{CLUSTER\}\}/$ECS_CLUSTER_ID}
+    main_webhook_parsed_url=${DEPLOY_WEBHOOK_URL/\{\{CLUSTER\}\}/$ECS_CLUSTER_ID}
     main_webhook_parsed_url=${main_webhook_parsed_url/\{\{REPOSITORY\}\}/$REPO_SLUG}
 
     main_repo_link=$(aws codebuild batch-get-builds --ids $CODEBUILD_BUILD_ID --query 'builds[0].source.location' --output text)
