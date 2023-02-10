@@ -77,7 +77,8 @@ Variable | Description | Examples/Values | Default
  `WORKLOAD_RESOURCE_TAGS` | Tags related to the workload that will be used to all resources provisioned <br><br> *Examples include tag name (case-insensitive) and value* | `workload=myapp` <br> `environment=staging` <br> `owner=me` 
  `WORKLOAD_VPC_ID` | VPC ID of the workload | `vpc-ad1234df` <br> `vpc-qw56er78` <br> `vpc-zxcvghjk`
  `DEPLOYMENT_CIRCUIT_BREAKER_RULE` | Enable or disable circuit breaker | `enable=true,rollback=true`
- `ECS_CONTAINER_STOP_TIMEOUT` | Set stopTimeout on taskdefinition | min: 0, max: 120, default: 30 
+ `ECS_CONTAINER_STOP_TIMEOUT` | Set stopTimeout on taskdefinition | min: 0, max: 120, default: 30
+ `TZ`| Set this variable to the desired task timezone | America/Sao_Paulo
 
  ### How to enable scheduled tasks
 - Create a file tasks/run_tasks.conf with the schedules on your code:
