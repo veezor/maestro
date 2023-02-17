@@ -66,6 +66,8 @@ render.sh --task-definition task-definition-$release_process_type.json \
 --use-secrets \
 --aws-sm-arns
 release_json_workload_resource_tags=$(jq --raw-input --raw-output '[ split(",") | .[] | "key=" + split("=")[0] + ",value=" + split("=")[1] ] | join(" ")' <<<"$WORKLOAD_RESOURCE_TAGS")
+echo "----> Validating Task Definition"
+aws ecs validate-task-definition --task-definition file://task-definition-$release_process_type.json
 echo "----> Updating Task Definition on ECS"
 release_task_definition_output=$(aws ecs register-task-definition \
 --tags $release_json_workload_resource_tags \
