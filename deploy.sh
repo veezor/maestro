@@ -143,14 +143,14 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 
 	if [[ ! -z "$NEW_RELIC_API_KEY" && ! -z "$NEW_RELIC_APP_ID" ]]; then
 		echo "----> Registering deployment with NewRelic APM"
-		deploy_newrelic_response=$(curl \ 
-			 -s \
-			 -o /dev/null \
-		     -X POST "https://api.newrelic.com/v2/applications/$NEW_RELIC_APP_ID/deployments.json" \
-			 -H "Api-Key:$NEW_RELIC_API_KEY" \
-			 -w "%{http_code}" \
-			 -H "Content-Type: application/json" \
-			 -d \
+		deploy_newrelic_response=$(curl \
+			-s \
+			-o /dev/null \
+		  -X POST "https://api.newrelic.com/v2/applications/$NEW_RELIC_APP_ID/deployments.json" \
+			-H "Api-Key:$NEW_RELIC_API_KEY" \
+			-w "%{http_code}" \
+			-H "Content-Type: application/json" \
+			-d \
 			"{
 				\"deployment\": {
 					\"revision\": \"${release_arn#*/}\"
