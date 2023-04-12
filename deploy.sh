@@ -1,5 +1,5 @@
 #!/bin/bash
-
+set -x
 set -eo pipefail
 
 VALID_ARGS=$(getopt -o a:ci:p:r:s: --long account-id:,create-service,cluster-id:,process-type:,repository-slug:,service-name: -n 'deploy.sh' -- "$@")
@@ -67,7 +67,7 @@ if [ -z "$deploy_service_name" ]; then
 fi
 
 release_arn=$(cat .releasearn)
-if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCESSES" || $ECS_SERVICE_TASK_PROCESSES =~ $deploy_process_type ) ]]; then
+if [[ $deploy_process_type != "scheduledtasks" && $deploy_process_type != "clock" && ( -z "$ECS_SERVICE_TASK_PROCESSES" || $ECS_SERVICE_TASK_PROCESSES =~ $deploy_process_type ) ]]; then
 	provision_target_group_arn=$(cat .tgarn)
 	deploy_desired_count=1
 	deploy_autoscaling_policies="cpu=55"
