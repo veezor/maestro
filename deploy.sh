@@ -67,8 +67,11 @@ if [ -z "$deploy_service_name" ]; then
 fi
 
 release_arn=$(cat .releasearn)
-if [[ $deploy_process_type != "scheduledtasks" && $deploy_process_type != "clock" && ( -z "$ECS_SERVICE_TASK_PROCESSES" || $ECS_SERVICE_TASK_PROCESSES =~ $deploy_process_type ) ]]; then
-	provision_target_group_arn=$(cat .tgarn)
+if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCESSES" || $ECS_SERVICE_TASK_PROCESSES =~ $deploy_process_type ) ]]; then
+	if [[ $deploy_process_type = "web" ]]; then
+		provision_target_group_arn=$(cat .tgarn)
+	fi
+
 	deploy_desired_count=1
 	deploy_autoscaling_policies="cpu=55"
 	deploy_desired_count_regex="$deploy_process_type[{};0-9]{0,}:([0-9]+)-{0,}([0-9]{0,})\[{0,}([;=0-9a-z]{0,})\]{0,}"
@@ -82,6 +85,7 @@ if [[ $deploy_process_type != "scheduledtasks" && $deploy_process_type != "clock
 		# TODO: remember to load it from SM
 		PORT=3000
 	fi
+
 	deploy_json_workload_resource_tags=$(jq --raw-input --raw-output '[ split(",") | .[] | "key=" + split("=")[0] + ",value=" + split("=")[1] ] | join(" ")' <<<"$WORKLOAD_RESOURCE_TAGS")
 	deploy_json_workload_resource_tags_captalized=$(jq --raw-input --raw-output '[ split(",") | .[] | "Key=" + split("=")[0] + ",Value=" + split("=")[1] ] | join(" ")' <<<"$WORKLOAD_RESOURCE_TAGS")
 
