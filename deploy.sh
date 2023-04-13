@@ -1,5 +1,5 @@
 #!/bin/bash
-
+set -x
 set -eo pipefail
 
 VALID_ARGS=$(getopt -o a:ci:p:r:s: --long account-id:,create-service,cluster-id:,process-type:,repository-slug:,service-name: -n 'deploy.sh' -- "$@")
@@ -68,7 +68,10 @@ fi
 
 release_arn=$(cat .releasearn)
 if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCESSES" || $ECS_SERVICE_TASK_PROCESSES =~ $deploy_process_type ) ]]; then
-	provision_target_group_arn=$(cat .tgarn)
+	if [[ $deploy_process_type = "web" ]]; then
+		provision_target_group_arn=$(cat .tgarn)
+	fi
+
 	deploy_desired_count=1
 	deploy_autoscaling_policies="cpu=55"
 	deploy_desired_count_regex="$deploy_process_type[{};0-9]{0,}:([0-9]+)-{0,}([0-9]{0,})\[{0,}([;=0-9a-z]{0,})\]{0,}"
@@ -82,6 +85,7 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 		# TODO: remember to load it from SM
 		PORT=3000
 	fi
+
 	deploy_json_workload_resource_tags=$(jq --raw-input --raw-output '[ split(",") | .[] | "key=" + split("=")[0] + ",value=" + split("=")[1] ] | join(" ")' <<<"$WORKLOAD_RESOURCE_TAGS")
 	deploy_json_workload_resource_tags_captalized=$(jq --raw-input --raw-output '[ split(",") | .[] | "Key=" + split("=")[0] + ",Value=" + split("=")[1] ] | join(" ")' <<<"$WORKLOAD_RESOURCE_TAGS")
 
@@ -139,14 +143,14 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 
 	if [[ ! -z "$NEW_RELIC_API_KEY" && ! -z "$NEW_RELIC_APP_ID" ]]; then
 		echo "----> Registering deployment with NewRelic APM"
-		deploy_newrelic_response=$(curl \ 
-			 -s \
-			 -o /dev/null \
-		     -X POST "https://api.newrelic.com/v2/applications/$NEW_RELIC_APP_ID/deployments.json" \
-			 -H "Api-Key:$NEW_RELIC_API_KEY" \
-			 -w "%{http_code}" \
-			 -H "Content-Type: application/json" \
-			 -d \
+		deploy_newrelic_response=$(curl \
+			-s \
+			-o /dev/null \
+		  -X POST "https://api.newrelic.com/v2/applications/$NEW_RELIC_APP_ID/deployments.json" \
+			-H "Api-Key:$NEW_RELIC_API_KEY" \
+			-w "%{http_code}" \
+			-H "Content-Type: application/json" \
+			-d \
 			"{
 				\"deployment\": {
 					\"revision\": \"${release_arn#*/}\"
