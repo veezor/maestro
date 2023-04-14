@@ -1,6 +1,5 @@
 #!/bin/bash
 
-set -x
 set -eo pipefail
 
 if [ -z "$REPO_SLUG" ]; then

@@ -161,8 +161,13 @@ if [ ! -z "$render_family_name" ]; then
 	echo "----> Filling family with $render_family_name"
 	cat <<< $(jq ".family=\"$render_family_name\"" $render_task_definition) > $render_task_definition
 
-    echo "----> Filling container's AWS logs information"
-	cat <<< $(jq ".containerDefinitions[]=(.containerDefinitions[] | select(.name==\"$render_container_name\") | . + {logConfiguration: {logDriver: \"awslogs\", options: {\"awslogs-group\": \"/ecs/$render_family_name\", \"awslogs-region\": \"$AWS_REGION\", \"awslogs-stream-prefix\": \"ecs\"}}})" $render_task_definition) > $render_task_definition
+	if [[ ! -z $MAESTRO_NO_LOG && $MAESTRO_NO_LOG = "true" ]]; then
+		echo "----> Skipping log creation"
+		cat <<< $(jq ".containerDefinitions[]=(.containerDefinitions[] | select(.name==\"$render_container_name\") | del(.logConfiguration))" $render_task_definition) > $render_task_definition
+	else
+		echo "----> Filling container's AWS logs information"
+		cat <<< $(jq ".containerDefinitions[]=(.containerDefinitions[] | select(.name==\"$render_container_name\") | . + {logConfiguration: {logDriver: \"awslogs\", options: {\"awslogs-group\": \"/ecs/$render_family_name\", \"awslogs-region\": \"$AWS_REGION\", \"awslogs-stream-prefix\": \"ecs\"}}})" $render_task_definition) > $render_task_definition
+	fi
 fi
 
 if [ ! -z "$render_aws_sm_name" ]; then

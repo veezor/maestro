@@ -1,5 +1,5 @@
 #!/bin/bash
-set -x
+
 set -eo pipefail
 
 VALID_ARGS=$(getopt -o a:ci:p:r:s: --long account-id:,create-service,cluster-id:,process-type:,repository-slug:,service-name: -n 'deploy.sh' -- "$@")
