@@ -31,10 +31,12 @@ if [ $(DOCKER_CLI_EXPERIMENTAL=enabled docker manifest inspect $build_image_name
 	exit 0
 fi
 
-if [ $MAESTRO_BUILD_MODE == Dockerfile ]; then
+if [ ! -z $MAESTRO_DOCKER_BUILD ]; then
         docker build -t ${build_image_name%:*}:latest -t $build_image_name $WORKLOAD_PATH
 	build_built=true
-elif [ $MAESTRO_BUILD_MODE == project.toml ]; then
+fi
+
+if [ -f project.toml && $build_built != true ]; then
 	build_builder_name=`grep builder project.toml | cut -d= -f2 | tr -d '" '`
 	build_builder_tag=`echo $build_builder_name | tr /: -`
 	docker pull ${build_image_name%:*}:$build_builder_tag 2> /dev/null || true
