@@ -31,12 +31,11 @@ if [ $(DOCKER_CLI_EXPERIMENTAL=enabled docker manifest inspect $build_image_name
 	exit 0
 fi
 
-if [ ! -z $MAESTRO_DOCKER_BUILD ]; then
-        docker build -t ${build_image_name%:*}:latest -t $build_image_name $WORKLOAD_PATH
-	build_built=true
+if [ -z "$WORKLOAD_PATH" ]; then
+        $WORKLOAD_PATH=.
 fi
 
-if [ -f project.toml && $build_built != true ]; then
+if [ -f "${WORKLOAD_PATH}/project.toml" ]; then
 	build_builder_name=`grep builder project.toml | cut -d= -f2 | tr -d '" '`
 	build_builder_tag=`echo $build_builder_name | tr /: -`
 	docker pull ${build_image_name%:*}:$build_builder_tag 2> /dev/null || true
@@ -50,9 +49,15 @@ if [ -f project.toml && $build_built != true ]; then
 	--env-file .env \
 	--publish \
 	--trust-builder \
+	--path ${WORKLOAD_PATH:-.}
        	$( [[ -z $MAESTRO_NO_CACHE || $MAESTRO_NO_CACHE = "false" ]] && echo "--pull-policy if-not-present --cache-image ${build_image_name%:*}:cache") \
        	$( [ $MAESTRO_NO_CACHE = "true" ] && echo "--pull-policy always --clear-cache --env USE_YARN_CACHE=false --env NODE_MODULES_CACHE=false") \
        	$( [ $MAESTRO_DEBUG = "true" ] && echo "--env NPM_CONFIG_LOGLEVEL=debug --env NODE_VERBOSE=true --verbose")
+	build_built=true
+fi
+
+if [ -z "$build_built" && -f "${WORKLOAD_PATH}/Dockerfile" ]; then
+        docker build -t ${build_image_name%:*}:latest -t $build_image_name ${WORKLOAD_PATH:-.}
 	build_built=true
 fi
 
