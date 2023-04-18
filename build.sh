@@ -49,7 +49,7 @@ if [ -f "${WORKLOAD_PATH}/project.toml" ]; then
 	--env-file .env \
 	--publish \
 	--trust-builder \
-	--path ${WORKLOAD_PATH:-.}
+	--path ${WORKLOAD_PATH}
        	$( [[ -z $MAESTRO_NO_CACHE || $MAESTRO_NO_CACHE = "false" ]] && echo "--pull-policy if-not-present --cache-image ${build_image_name%:*}:cache") \
        	$( [ $MAESTRO_NO_CACHE = "true" ] && echo "--pull-policy always --clear-cache --env USE_YARN_CACHE=false --env NODE_MODULES_CACHE=false") \
        	$( [ $MAESTRO_DEBUG = "true" ] && echo "--env NPM_CONFIG_LOGLEVEL=debug --env NODE_VERBOSE=true --verbose")
@@ -57,7 +57,7 @@ if [ -f "${WORKLOAD_PATH}/project.toml" ]; then
 fi
 
 if [ -z "$build_built" && -f "${WORKLOAD_PATH}/Dockerfile" ]; then
-        docker build -t ${build_image_name%:*}:latest -t $build_image_name ${WORKLOAD_PATH:-.}
+        docker build -t ${build_image_name%:*}:latest -t $build_image_name ${WORKLOAD_PATH}
 	build_built=true
 fi
 
