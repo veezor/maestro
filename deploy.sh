@@ -143,6 +143,12 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 
 	if [[ ! -z "$NEW_RELIC_API_KEY" && ! -z "$NEW_RELIC_APP_ID" ]]; then
 		echo "----> Registering deployment with NewRelic APM"
+
+		git_change_log=$(echo $(git log -1 --pretty="format:%B"))
+		git_revision_user=$(echo $(git log -1 --pretty="format:%an"))
+		git_custom_description=$(echo $(git log -1 --pretty="format:${NEW_RELIC_DESCRIPTION}"))
+		timestamp=$(date)
+			
 		deploy_newrelic_response=$(curl \
 			-s \
 			-o /dev/null \
@@ -153,7 +159,11 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 			-d \
 			"{
 				\"deployment\": {
-					\"revision\": \"${release_arn#*/}\"
+					\"revision\": \"${release_arn#*/}\",
+					\"changelog\": \"${git_change_log}\",
+					\"description\": \"${git_custom_description}\",
+					\"user\": \"${git_revision_user}\",
+					\"timestamp\": \"${timestamp}\"
 				}
 			}"
 		)
