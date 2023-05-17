@@ -147,7 +147,7 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 		git_change_log=$(echo $(git log -1 --pretty="format:%B"))
 		git_revision_user=$(echo $(git log -1 --pretty="format:%an"))
 		git_custom_description=$(echo $(git log -1 --pretty="format:${NEW_RELIC_DESCRIPTION}"))
-		timestamp=$(date)
+		timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 			
 		deploy_newrelic_response=$(curl \
 			-s \
