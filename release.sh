@@ -1,5 +1,5 @@
 #!/bin/bash
-
+set -x
 set -eo pipefail
 
 VALID_ARGS=$(getopt -o b:i:l:p:r: --long branch-name:,cluster-id:,image-name:,process-type:,repository-slug: -n 'release.sh' -- "$@")
