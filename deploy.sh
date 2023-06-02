@@ -90,7 +90,7 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 	deploy_json_workload_resource_tags_captalized=$(jq --raw-input --raw-output '[ split(",") | .[] | "Key=" + split("=")[0] + ",Value=" + split("=")[1] ] | join(" ")' <<<"$WORKLOAD_RESOURCE_TAGS")
 
 	echo "----> Deploying service $deploy_process_type"
-	
+
 	if [ -z "$DEPLOYMENT_CIRCUIT_BREAKER_RULE" ]; then
 		DEPLOYMENT_CIRCUIT_BREAKER_RULE='enable=true,rollback=true'
 	fi
@@ -144,11 +144,11 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 	if [[ ! -z "$NEW_RELIC_API_KEY" && ! -z "$NEW_RELIC_APP_ID" ]]; then
 		echo "----> Registering deployment with NewRelic APM"
 
-		git_change_log=$(echo $(git log -1 --pretty="format:%B"))
-		git_revision_user=$(echo $(git log -1 --pretty="format:%an"))
-		git_custom_description=$(echo $(git log -1 --pretty="format:${NEW_RELIC_DESCRIPTION}"))
+		git_change_log=$(echo $(git log -1 --pretty="format:%B" | sed -e 's/\"//g'))
+		git_revision_user=$(echo $(git log -1 --pretty="format:%an" | sed -e 's/\"//g'))
+		git_custom_description=$(echo $(git log -1 --pretty="format:${NEW_RELIC_DESCRIPTION}" | sed -e 's/\"//g'))
 		timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-			
+
 		deploy_newrelic_response=$(curl \
 			-s \
 			-o /dev/null \
