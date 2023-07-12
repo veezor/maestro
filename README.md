@@ -67,6 +67,7 @@ Variable | Description | Examples/Values | Default
  `ECS_SERVICE_TASK_PROCESSES` | Processes intended to have a service to be created according to Procfile <br><br> *Multiple services can be assigned using comma as separator* <br> <br> *For CPU and RAM assignment use semicolon as separator and curly brackets as container* <br> *For number of tasks assignment use colon as separator and a dash between numbers to define max task auto scaling value* <br> *For CPU and RAM usage percentage and ALB request count auto scaling triggers assignment use semicolon as separator and square brackets as container* | `web` <br> `web,worker` <br> `web{1024;2048}:2-5[mem=55;cpu=60;alb=1000]` <br> `web{512;1024}:2,worker{1024;2048}:1-3` <br><br> Add `scheduledtasks{256;512}` process to be able to create Scheduled Tasks. Does not create an ECS service, only enables the feature <br><br> `<process>{<v-cpus>;<mem>}:<min_tasks>-<max_tasks>[<mem=percent>;<cpu=percent>]` <br><br> `<process>` = Process name <br> `<v-cpus>` = Desired number of v-cpus per task x1024 <br> `<mem>` = Desired allocated MB of RAM per task <br> `<min_tasks>` = Minimum amount of tasks per process, can be used without a max value so as to not use auto scaling <br> `<max_tasks>` = Maximum amount of tasks per process <br> `<mem=percent>`= RAM usage percentage auto scaling trigger <br> `<cpu=percent>` = CPU usage percentage auto scaling trigger <br> `<alb=requestcount>` = Load Balancer request count auto scaling trigger <br><br> Example using all default values except for `Tasks per Process`: <br> `test:2-5,scheduledtasks` <br> Fully disclosed example would be: <br> `test{512;512}:2-5[cpu=55],scheduledtasks{256;512}` | `<v-cpus>` = 512 <br> `<mem>` = 512 <br> `<min_tasks>` = 1 <br> `<cpu=percent>` = 55 (if auto scaling is active) <br><br> `scheduledtasks <v-cpus>` = 256 <br> `scheduledtasks <mem>` = 512
  `ECS_TASK_ROLE_ARN` | IAM Role ARN linked to ECS Task | `arn:aws:iam::0123456789:role/<role-name>` 
  `MAESTRO_BRANCH_OVERRIDE` | Temporary overriding of the working branch | `staging` <br> `production` 
+ `MAESTRO_REPO_OVERRIDE` | Temporary overriding on the repo name
  `MAESTRO_DEBUG` | Amplify verbosity of the build <br><br> **Choose only one of the example values** | `true` <br> `false` 
  `MAESTRO_NO_CACHE` | If the cache layer shouldn't be used in the pack build <br><br> **Choose only one of the example values** | `true` <br> `false` 
  `MAESTRO_ONLY_BUILD` | Stops after build if `true`, leave empty otherwise | `true` 
@@ -80,7 +81,6 @@ Variable | Description | Examples/Values | Default
  `DEPLOYMENT_CIRCUIT_BREAKER_RULE` | Enable or disable circuit breaker | `enable=true,rollback=true`
  `ECS_CONTAINER_STOP_TIMEOUT` | Set stopTimeout on taskdefinition | min: 0, max: 120, default: 30
  `TZ`| Set this variable to the desired task timezone | America/Sao_Paulo
- `MAESTRO_REPO_OVERRIDE` | Temporary overriding on the repo name
 
  ### How to enable scheduled tasks
 - Create a file tasks/run_tasks.conf with the schedules on your code:
