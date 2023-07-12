@@ -79,7 +79,6 @@ Variable | Description | Examples/Values | Default
  `DEPLOYMENT_CIRCUIT_BREAKER_RULE` | Enable or disable circuit breaker | `enable=true,rollback=true`
  `ECS_CONTAINER_STOP_TIMEOUT` | Set stopTimeout on taskdefinition | min: 0, max: 120, default: 30
  `TZ`| Set this variable to the desired task timezone | America/Sao_Paulo
- `WORKLOAD_PATH`| Set the workload path to run build commands on should do it | ./Projects/my-app, ./
 
  ### How to enable scheduled tasks
 - Create a file tasks/run_tasks.conf with the schedules on your code:
