@@ -2,6 +2,10 @@
 
 set -eo pipefail
 
+if [ ! -z "$MAESTRO_REPO_OVERRIDE" ]; then
+    REPO_SLUG=$MAESTRO_REPO_OVERRIDE
+fi
+
 if [ -z "$REPO_SLUG" ]; then
     REPO_SLUG=${CODEBUILD_SOURCE_REPO_URL#*://*/}
     REPO_SLUG=${REPO_SLUG,,}
