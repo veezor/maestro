@@ -12,22 +12,18 @@ while [ : ]; do
 	case "$1" in
 		-b | --branch-name)
 			provision_branch_name=$2
-			#echo "Branch name is '$2'"
 			shift 2
 			;;
 		-p | --process-type)
 			provision_process_type=$2
-			#echo "Process Type is '$2'"
 			shift 2
 			;;
 		-r | --repository-slug)
 			provision_repository_slug=$2
-			#echo "Repository slug is '$2'"
 			shift 2
 			;;
         -i | --cluster-id)
             provision_cluster_id=$2
-            #echo "Cluster ID is '$2'"
             shift 2
             ;;
 		--) shift;
