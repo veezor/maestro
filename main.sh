@@ -1,5 +1,6 @@
 #!/bin/bash
 
+set -x
 set -eo pipefail
 
 if [ ! -z "$MAESTRO_REPO_OVERRIDE" ]; then

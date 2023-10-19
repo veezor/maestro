@@ -1,5 +1,6 @@
 #!/bin/bash
 
+set -x
 set -eo pipefail
 
 VALID_ARGS=$(getopt -o i: --long image-name: -n 'build.sh' -- "$@")
