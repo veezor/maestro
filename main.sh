@@ -96,7 +96,8 @@ while IFS= read -r line; do
     
     provision.sh --process-type $line \
     --repository-slug $REPO_SLUG \
-    --branch-name $BRANCH
+    --branch-name $BRANCH \
+    --cluster-id $ECS_CLUSTER_ID
 
     deploy.sh --process-type $line \
     --service-name $REPO_SLUG-$BRANCH-$line \

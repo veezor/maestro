@@ -2,7 +2,7 @@
 
 set -eo pipefail
 
-VALID_ARGS=$(getopt -o b:p:r: --long branch-name:,process-type:,repository-slug: -n 'provision.sh' -- "$@")
+VALID_ARGS=$(getopt -o b:p:r:i: --long branch-name:,process-type:,repository-slug:,cluster-id: -n 'provision.sh' -- "$@")
 if [[ $? -ne 0 ]]; then
 	exit 1;
 fi
@@ -12,19 +12,20 @@ while [ : ]; do
 	case "$1" in
 		-b | --branch-name)
 			provision_branch_name=$2
-			#echo "Branch name is '$2'"
 			shift 2
 			;;
 		-p | --process-type)
 			provision_process_type=$2
-			#echo "Process Type is '$2'"
 			shift 2
 			;;
 		-r | --repository-slug)
 			provision_repository_slug=$2
-			#echo "Repository slug is '$2'"
 			shift 2
 			;;
+        -i | --cluster-id)
+            provision_cluster_id=$2
+            shift 2
+            ;;
 		--) shift;
 		    break
 		    ;;
@@ -46,6 +47,11 @@ if [ -z "$provision_repository_slug" ]; then
 	exit 1
 fi
 
+if [ -z "$provision_cluster_id" ]; then
+	echo "Error: Missing required parameter --cluster-id"
+	exit 1
+fi
+
 provision_log_group_name="/ecs/$provision_repository_slug-$provision_branch_name-$provision_process_type"
 provision_log_group_exists=$(aws logs describe-log-groups --log-group-name-prefix $provision_log_group_name | jq '.logGroups | length')
 if [ "$provision_log_group_exists" -eq "0" ]; then
@@ -53,6 +59,25 @@ if [ "$provision_log_group_exists" -eq "0" ]; then
 	--log-group-name $provision_log_group_name \
 	--tags $WORKLOAD_RESOURCE_TAGS)
 	echo "----> Created missing log group for $provision_process_type"
+fi
+
+provision_json_workload_resource_tags=$(jq --raw-input --raw-output '[ split(",") | .[] | "key=" + split("=")[0] + ",value=" + split("=")[1] ] | join(" ")' <<<"$WORKLOAD_RESOURCE_TAGS")
+provision_json_workload_resource_tags_captalized=$(jq --raw-input --raw-output '[ split(",") | .[] | "Key=" + split("=")[0] + ",Value=" + split("=")[1] ] | join(" ")' <<<"$WORKLOAD_RESOURCE_TAGS")
+
+provision_cluster_status=$(aws ecs describe-clusters \
+--cluster $provision_cluster_id --query 'clusters[?status==`INACTIVE`].status' --output text
+)
+provision_cluster_failure_reason=$(aws ecs describe-clusters \
+--cluster $provision_cluster_id --query 'failures[?reason==`MISSING`].reason' --output text
+)
+if [ "$provision_cluster_status" == "INACTIVE" ] || [ ! -z "$provision_cluster_failure_reason" ]; then
+	provision_create_cluster=$(aws ecs create-cluster \
+	--cluster-name $provision_cluster_id \
+	--tags $provision_json_workload_resource_tags \
+	--capacity-provider FARGATE FARGATE_SPOT \
+	--default-capacity-provider-strategy capacityProvider=FARGATE_SPOT,weight=1
+	)
+	echo "----> First deployment detected. Provisioning cluster $provision_cluster_id"
 fi
 
 provision_json_workload_resource_tags=$(jq --raw-input --raw-output '[ split(",") | .[] | "Key=" + split("=")[0] + ",Value=" + split("=")[1] ] | join(" ")' <<<"$WORKLOAD_RESOURCE_TAGS")
