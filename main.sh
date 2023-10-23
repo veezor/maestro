@@ -98,7 +98,7 @@ while IFS= read -r line; do
     --branch-name $BRANCH \
     --cluster-id $ECS_CLUSTER_ID
 
-    if [ ! -z "$main_services" ]; then
+    if [ -z "$main_services" ]; then
         main_services=$(aws ecs list-services --cluster $ECS_CLUSTER_ID)
     fi
     
