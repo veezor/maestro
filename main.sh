@@ -98,9 +98,12 @@ while IFS= read -r line; do
     --branch-name $BRANCH \
     --cluster-id $ECS_CLUSTER_ID
 
-    main_services=$(aws ecs list-services --cluster $ECS_CLUSTER_ID)
-    main_create_service=$(jq ".serviceArns[] | select(endswith(\"$REPO_SLUG-$BRANCH-$line\"))" <<<$main_services)
+    if [ ! -z "$main_services" ]; then
+        main_services=$(aws ecs list-services --cluster $ECS_CLUSTER_ID)
+    fi
     
+    main_create_service=$(jq ".serviceArns[] | select(endswith(\"$REPO_SLUG-$BRANCH-$line\"))" <<<$main_services)
+
     deploy.sh --process-type $line \
     --service-name $REPO_SLUG-$BRANCH-$line \
     --cluster-id $ECS_CLUSTER_ID \
