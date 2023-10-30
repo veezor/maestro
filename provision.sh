@@ -1,6 +1,5 @@
 #!/bin/bash
 
-set -x
 set -eo pipefail
 
 VALID_ARGS=$(getopt -o b:p:r:i: --long branch-name:,process-type:,repository-slug:,cluster-id: -n 'provision.sh' -- "$@")
