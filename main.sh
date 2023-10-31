@@ -85,9 +85,7 @@ main_processes=${main_processes%$'\n'}
 # refactor line break below
 main_processes="$main_processes
 launcher"
-main_services=$(aws ecs list-services --cluster $ECS_CLUSTER_ID)
 while IFS= read -r line; do
-    main_create_service=$(jq ".serviceArns[] | select(endswith(\"$REPO_SLUG-$BRANCH-$line\"))" <<<$main_services)
     release.sh --image-name $IMAGE_NAME \
     --process-type $line \
     --repository-slug $REPO_SLUG \
@@ -98,6 +96,12 @@ while IFS= read -r line; do
     --repository-slug $REPO_SLUG \
     --branch-name $BRANCH \
     --cluster-id $ECS_CLUSTER_ID
+
+    if [ -z "$main_services" ]; then
+        main_services=$(aws ecs list-services --cluster $ECS_CLUSTER_ID)
+    fi
+    
+    main_create_service=$(jq ".serviceArns[] | select(endswith(\"$REPO_SLUG-$BRANCH-$line\"))" <<<$main_services)
 
     deploy.sh --process-type $line \
     --service-name $REPO_SLUG-$BRANCH-$line \
