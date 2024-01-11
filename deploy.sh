@@ -197,7 +197,7 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 			deploy_current_scaling_policy=$(aws application-autoscaling describe-scaling-policies --service-namespace ecs --policy-names $deploy_service_name-$type_of-scaling-policy --query 'ScalingPolicies[0].TargetTrackingScalingPolicyConfiguration')
 			deploy_current_scale_out_cooldown=$(echo $deploy_current_scaling_policy | jq --raw-output '.ScaleOutCooldown // 300')
 			deploy_current_scale_in_cooldown=$(echo $deploy_current_scaling_policy | jq --raw-output '.ScaleInCooldown // 300')
-			if [ ! -z "$DISABLE_SCALE_IN" ]; then			
+			if [ -z "$DISABLE_SCALE_IN" ]; then			
 				deploy_current_scale_in_state=$(echo $deploy_current_scaling_policy | jq --raw-output '.DisableScaleIn // true')
 			fi
 			echo "----> Registering scaling policies for $deploy_process_type with $deploy_predefined_metric_type=$deploy_target_value"
