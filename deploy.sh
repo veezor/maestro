@@ -74,7 +74,7 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 
 	deploy_desired_count=1
 	deploy_autoscaling_policies="cpu=55"
-	deploy_desired_count_regex="$deploy_process_type[{};0-9]{0,}:([0-9]+)-{0,}([0-9]{0,})\[{0,}([;=0-9a-z]{0,})\]{0,}"
+	deploy_desired_count_regex="$deploy_process_type[{};0-9]{0,}:([0-9]+)-{0,}([0-9]{0,})\[{0,}([;=&0-9a-z]{0,})\]{0,}"
 	if [[ $ECS_SERVICE_TASK_PROCESSES =~ $deploy_desired_count_regex ]]; then
 		deploy_desired_count=${BASH_REMATCH[1]}
 		deploy_max_autoscaling_count=${BASH_REMATCH[2]}
@@ -160,8 +160,9 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 		--min-capacity $deploy_desired_count \
 		--max-capacity $deploy_max_autoscaling_count
 
-		for policy in ${deploy_autoscaling_policies//;/ }; do
-			deploy_target_value=${policy#*=}
+		IFS=';' read -ra policies <<< "$deploy_autoscaling_policies"
+		for policy in "${policies[@]}"; do
+    		IFS='=' read -r metric value <<< "$policy"
 			case $policy in
 				cpu=*)
 					deploy_predefined_metric_type="ECSServiceAverageCPUUtilization"
@@ -189,6 +190,21 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 					exit 1
 					;;
 			esac
+
+			if [[ $value =~ ([0-9]+) ]]; then
+        		deploy_target_value="${BASH_REMATCH[1]}"
+    		else
+        		echo "Error: Invalid numeric value in policy $metric=$value"
+        		exit 1
+    		fi
+
+    		if [[ $value =~ '&nosclin' ]]; then
+        		nosclin_value="true"
+        		value="${value//&nosclin/}"
+    		else
+    		    nosclin_value="false"
+    		fi
+
 			if [[ $type_of == 'alb' ]]; then
 				deploy_predefined_metric_specification="{PredefinedMetricType=$deploy_predefined_metric_type,ResourceLabel=$deploy_resource_label}"
 			else
@@ -204,7 +220,7 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 			--resource-id service/$deploy_cluster_id/$deploy_service_name \
 			--scalable-dimension ecs:service:DesiredCount \
 			--policy-type TargetTrackingScaling \
-			--target-tracking-scaling-policy-configuration "TargetValue=$deploy_target_value,PredefinedMetricSpecification=$deploy_predefined_metric_specification,ScaleOutCooldown=$deploy_current_scale_out_cooldown,ScaleInCooldown=$deploy_current_scale_in_cooldown")
+			--target-tracking-scaling-policy-configuration "TargetValue=$deploy_target_value,PredefinedMetricSpecification=$deploy_predefined_metric_specification,ScaleOutCooldown=$deploy_current_scale_out_cooldown,ScaleInCooldown=$deploy_current_scale_in_cooldown,DisableScaleIn=$nosclin_value")
 		done
 	#else
 	 	# TODO: remove scalable target if it exists
