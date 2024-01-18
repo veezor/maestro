@@ -1,6 +1,7 @@
 #!/bin/bash
 
 set -eo pipefail
+set -x
 
 if [ $MAESTRO_DEBUG == "true" ]; then
     set -x
@@ -137,6 +138,45 @@ if [ "$provision_process_type" = "web" ]; then
         --load-balancer-arn $provision_alb_arn \
         --protocol HTTP \
         --port 80 \
+        --tags $provision_json_workload_resource_tags \
+        --default-actions Type=forward,TargetGroupArn=$provision_target_group_arn)
+    fi
+fi
+
+if [[ "$provision_process_type" =~ ^web[a-z1-9] ]]; then
+    provision_alb_exists=$(aws elbv2 describe-load-balancers --name ${provision_alb_name:0:32} || echo false)
+    if [ "$provision_alb_exists" = false ]; then
+        echo "----> Error: The Procfile order needs to 'WEB' process be the first."
+        exit 1
+    fi
+    provision_json_workload_resource_tags=$(jq --raw-input --raw-output '[ split(",") | .[] | "Key=" + split("=")[0] + ",Value=" + split("=")[1] ] | join(" ")' <<<"$WORKLOAD_RESOURCE_TAGS")
+    provision_tg_name=$provission_process_type-$provision_repository_slug-$provision_branch_name
+    provision_tg_exists=$(aws elbv2 describe-target-groups --name ${provision_tg_name:0:32} || echo false)
+    if [ "$provision_tg_exists" = false ]; then
+        provision_tg_port=$(aws secretsmanager get-secret-value --secret-id $provision_branch_name/$provision_repository_slug | jq --raw-output '.SecretString' | jq -r .PORT-$provision_process_type || echo false)
+        if [ $provision_tg_port = false ]; then
+            echo "----> Error: Port not found in secretsmanager. Add the variable PORT-$provision_process_type for the new process to secretsmanager."
+            exit 1
+        fi
+        provision_tg_create_output=$(aws elbv2 create-target-group \
+        --name ${provision_tg_name:0:32} \
+        --protocol HTTP \
+        --port $provision_tg_port \
+        --vpc-id $WORKLOAD_VPC_ID \
+        --target-type ip \
+        --tags $provision_json_workload_resource_tags)
+        echo "----> Provisioning Target Group for $provision_process_type"
+        provision_target_group_arn=$(jq --raw-output '.TargetGroups[0].TargetGroupArn' <<<$provision_tg_create_output)
+    else
+        provision_target_group_arn=$(jq --raw-output '.TargetGroups[0].TargetGroupArn' <<<$provision_tg_exists)
+    fi
+    echo $provision_target_group_arn > .tgarn
+    provision_listener_exists=$(aws elbv2 describe-listeners --load-balancer-arn $provision_alb_arn --query 'Listeners[?Port==`$provision_tg_port`]' | jq '.Listeners | length' || echo false)
+    if [ "$provision_listener_exists" = false ]; then
+        provision_listener_create_output=$(aws elbv2 create-listener \
+        --load-balancer-arn $provision_alb_arn \
+        --protocol HTTP \
+        --port $provision_tg_port \
         --tags $provision_json_workload_resource_tags \
         --default-actions Type=forward,TargetGroupArn=$provision_target_group_arn)
     fi
