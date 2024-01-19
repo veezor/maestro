@@ -144,6 +144,7 @@ if [ "$provision_process_type" = "web" ]; then
 fi
 
 if [[ "$provision_process_type" =~ ^web[a-z1-9] ]]; then
+    provision_alb_name=$provision_repository_slug-$provision_branch_name
     provision_alb_exists=$(aws elbv2 describe-load-balancers --name ${provision_alb_name:0:32} || echo false)
     if [ "$provision_alb_exists" = false ]; then
         echo "----> Error: The Procfile order needs to 'WEB' process be the first."
