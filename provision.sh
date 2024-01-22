@@ -154,12 +154,12 @@ if [[ "$provision_process_type" =~ ^web[1-9] ]]; then
     provision_json_workload_resource_tags=$(jq --raw-input --raw-output '[ split(",") | .[] | "Key=" + split("=")[0] + ",Value=" + split("=")[1] ] | join(" ")' <<<"$WORKLOAD_RESOURCE_TAGS")
     provision_tg_name=$provision_process_type-$provision_repository_slug-$provision_branch_name
     provision_tg_exists=$(aws elbv2 describe-target-groups --name ${provision_tg_name:0:32} || echo false)
+    provision_tg_port=$(aws secretsmanager get-secret-value --secret-id $provision_branch_name/$provision_repository_slug | jq --raw-output '.SecretString' | jq -r .PORT${provision_process_type^^} || echo false)
+    if [ $provision_tg_port = false ]; then
+        echo "----> Error: Port not found in secretsmanager. Add the variable PORT${provision_process_type^^} for the new process to secretsmanager."
+        exit 1
+    fi
     if [ "$provision_tg_exists" = false ]; then
-        provision_tg_port=$(aws secretsmanager get-secret-value --secret-id $provision_branch_name/$provision_repository_slug | jq --raw-output '.SecretString' | jq -r .PORT${provision_process_type^^} || echo false)
-        if [ $provision_tg_port = false || "$provision_tg_exists" = null ]; then
-            echo "----> Error: Port not found in secretsmanager. Add the variable PORT${provision_process_type^^} for the new process to secretsmanager."
-            exit 1
-        fi
         provision_tg_create_output=$(aws elbv2 create-target-group \
         --name ${provision_tg_name:0:32} \
         --protocol HTTP \
@@ -173,7 +173,7 @@ if [[ "$provision_process_type" =~ ^web[1-9] ]]; then
         provision_target_group_arn=$(jq --raw-output '.TargetGroups[0].TargetGroupArn' <<<$provision_tg_exists)
     fi
     echo $provision_target_group_arn > .tgarn
-    provision_listener_exists=$(aws elbv2 describe-listeners --load-balancer-arn $provision_alb_arn --query 'Listeners[?Port==`$provision_tg_port`]' | jq '.Listeners | length' || echo false)
+    provision_listener_exists=$(aws elbv2 describe-listeners --load-balancer-arn $provision_alb_arn --query 'Listeners[?Port==`'$provision_tg_port'`]' | jq '.Listeners | length' || echo false)
     if [ "$provision_listener_exists" = false ]; then
         provision_listener_create_output=$(aws elbv2 create-listener \
         --load-balancer-arn $provision_alb_arn \
