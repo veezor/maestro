@@ -173,13 +173,13 @@ if [[ "$provision_process_type" =~ ^web[1-9] ]]; then
         provision_target_group_arn=$(jq --raw-output '.TargetGroups[0].TargetGroupArn' <<<$provision_tg_exists)
     fi
     echo $provision_target_group_arn > .tgarn
-    provision_listener_exists=$(aws elbv2 describe-listeners --load-balancer-arn $provision_alb_arn --query 'Listeners[?Port==`'$provision_tg_port'`]' | jq '.Listeners | length' || echo false)
-    if [ "$provision_listener_exists" = false ]; then
-        provision_listener_create_output=$(aws elbv2 create-listener \
-        --load-balancer-arn $provision_alb_arn \
-        --protocol HTTP \
-        --port $provision_tg_port \
-        --tags $provision_json_workload_resource_tags \
-        --default-actions Type=forward,TargetGroupArn=$provision_target_group_arn)
+    echo "[{"Field": "path-pattern", "PathPatternConfig": {"Values": ["/text/*"]}}]" > listener-conditions.json
+    provision_listener_exists=$(aws elbv2 describe-listeners --load-balancer-arn $provision_alb_arn --query 'Listeners[?Port==`80`].ListenerArn' || echo false)
+    if [ "$provision_listener_exists" != false ]; then
+        provision_listener_rule_create_output=$(aws elbv2 create-rule \
+        --listener-arn $provision_listener_exists \
+        --priority 1 \
+        --conditions file://listener-conditions.json \
+        --actions Type=forward,TargetGroupArn=$provision_target_group_arn)
     fi
 fi
