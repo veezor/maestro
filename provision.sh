@@ -174,7 +174,7 @@ if [[ "$provision_process_type" =~ ^web[1-9] ]]; then
     fi
     echo $provision_target_group_arn > .tgarn
     echo "[{"Field": "path-pattern", "PathPatternConfig": {"Values": ["/text/*"]}}]" > listener-conditions.json
-    provision_listener_exists=$(aws elbv2 describe-listeners --load-balancer-arn $provision_alb_arn | jq --raw-output 'Listeners.ListenerArn' || echo false)
+    provision_listener_exists=$(aws elbv2 describe-listeners --load-balancer-arn $provision_alb_arn | jq --raw-output '.Listeners[0].ListenerArn' || echo false)
     if [ "$provision_listener_exists" != false ]; then
         provision_listener_rule_create_output=$(aws elbv2 create-rule \
         --listener-arn $provision_listener_exists \
