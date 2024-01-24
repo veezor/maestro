@@ -72,7 +72,7 @@ fi
 
 release_arn=$(cat .releasearn)
 if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCESSES" || $ECS_SERVICE_TASK_PROCESSES =~ $deploy_process_type ) ]]; then
-	if [[ $deploy_process_type = "web" || "$deploy_process_type" =~ ^web[1-9] ]]; then
+	if [[ $deploy_process_type = "web" || $deploy_process_type =~ ^web[1-9] ]]; then
 		provision_target_group_arn=$(cat .tgarn)
 	fi
 
