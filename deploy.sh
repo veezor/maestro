@@ -88,6 +88,11 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 	if [ -z "$PORT" ]; then
 		# TODO: remember to load it from SM
 		PORT=3000
+		if [[ $deploy_process_type =~ ^web[1-9] ]]; then
+			IFS='-' read -r -a branch <<< "$deploy_repository_slug"
+			PORT=$(aws secretsmanager get-secret-value --secret-id "${branch[1]}"/$deploy_repository_slug | jq --raw-output '.SecretString' | jq -r .PORT${deploy_process_type^^} || echo false)
+		fi
+		echo "----> This is the PORT: $PORT"
 	fi
 
 	if [ -z "$DEPLOYMENT_CIRCUIT_BREAKER_RULE" ]; then
