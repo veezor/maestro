@@ -71,9 +71,14 @@ if [ -z "$deploy_service_name" ]; then
 fi
 
 release_arn=$(cat .releasearn)
+PORT=3000
 if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCESSES" || $ECS_SERVICE_TASK_PROCESSES =~ $deploy_process_type ) ]]; then
 	if [[ $deploy_process_type = "web" || $deploy_process_type =~ ^web[1-9] ]]; then
 		provision_target_group_arn=$(cat .tgarn)
+		if [[ $deploy_process_type =~ ^web[1-9] ]]; then
+			IFS='-' read -r -a branch <<< "$deploy_repository_slug"
+			PORT=$(aws secretsmanager get-secret-value --secret-id "${branch[1]}"/$deploy_repository_slug | jq --raw-output '.SecretString' | jq -r .PORT${deploy_process_type^^} || echo false)
+		fi
 	fi
 
 	deploy_desired_count=1
@@ -83,16 +88,6 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 		deploy_desired_count=${BASH_REMATCH[1]}
 		deploy_max_autoscaling_count=${BASH_REMATCH[2]}
 		deploy_autoscaling_policies=${BASH_REMATCH[3]}
-	fi
-
-	if [ -z "$PORT" ]; then
-		# TODO: remember to load it from SM
-		PORT=3000
-		if [[ $deploy_process_type =~ ^web[1-9] ]]; then
-			IFS='-' read -r -a branch <<< "$deploy_repository_slug"
-			PORT=$(aws secretsmanager get-secret-value --secret-id "${branch[1]}"/$deploy_repository_slug | jq --raw-output '.SecretString' | jq -r .PORT${deploy_process_type^^} || echo false)
-		fi
-		echo "----> This is the PORT: $PORT"
 	fi
 
 	if [ -z "$DEPLOYMENT_CIRCUIT_BREAKER_RULE" ]; then
