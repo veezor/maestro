@@ -6,7 +6,7 @@ if [ $MAESTRO_DEBUG == "true" ]; then
     set -x
 fi
 
-VALID_ARGS=$(getopt -o a:ci:p:r:s: --long account-id:,create-service,cluster-id:,process-type:,repository-slug:,service-name: -n 'deploy.sh' -- "$@")
+VALID_ARGS=$(getopt -o a:ci:p:r:s: --long account-id:,create-service,cluster-id:,process-type:,repository-slug:,service-name:,branch-name: -n 'deploy.sh' -- "$@")
 if [[ $? -ne 0 ]]; then
 	exit 1;
 fi
@@ -44,6 +44,11 @@ while [ : ]; do
 			#echo "Service name is '$2'"
 			shift 2
 			;;
+		-b | --branch-name)
+			deploy_branch_name=$2
+			#echo "Branch name is '$2'"
+			shift 2
+			;;
 		--) shift;
 		    break
 		    ;;
@@ -70,14 +75,18 @@ if [ -z "$deploy_service_name" ]; then
 	exit 1
 fi
 
+if [ -z "$deploy_branch_name" ]; then
+	echo "Error: Missing required parameter --branch-name"
+	exit 1
+fi
+
 release_arn=$(cat .releasearn)
 PORT=3000
 if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCESSES" || $ECS_SERVICE_TASK_PROCESSES =~ $deploy_process_type ) ]]; then
 	if [[ $deploy_process_type = "web" || $deploy_process_type =~ ^web[1-9] ]]; then
 		provision_target_group_arn=$(cat .tgarn)
 		if [[ $deploy_process_type =~ ^web[1-9] ]]; then
-			IFS='-' read -r -a branch <<< "$deploy_repository_slug"
-			PORT=$(aws secretsmanager get-secret-value --secret-id "${branch[1]}"/$deploy_repository_slug | jq --raw-output '.SecretString' | jq -r .PORT${deploy_process_type^^} || echo false)
+			PORT=$(aws secretsmanager get-secret-value --secret-id $deploy_branch_name/$deploy_repository_slug | jq --raw-output '.SecretString' | jq -r .PORT${deploy_process_type^^} || echo false)
 		fi
 	fi
 

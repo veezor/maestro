@@ -118,5 +118,6 @@ while IFS= read -r line; do
     --cluster-id $ECS_CLUSTER_ID \
     --repository-slug $REPO_SLUG \
     --account-id $AWS_ACCOUNT_ID \
+    --branch $BRANCH \
     $( [ -z "$main_create_service" ] && echo "--create-service")
 done <<< "$main_processes"
