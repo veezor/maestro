@@ -117,7 +117,7 @@ if [ -z "$render_is_container_name_present" ]; then
 	exit 1
 fi
 
-if [ ! -z "$render_process_type" ] && [ ! "$render_process_type" == "web" ]; then
+if [ ! -z "$render_process_type" ] && [ ! "$render_process_type" == "web" ] && [[ ! "$render_process_type" =~ ^web[1-9] ]]; then
 	echo "----> Defining entrypoint for non-web process type $render_process_type"
 	cat <<< $(jq ".containerDefinitions[]=(.containerDefinitions[] | select(.name==\"$render_container_name\") | .entryPoint[0] = \"$render_process_type\" | del(.portMappings))" $render_task_definition) > $render_task_definition
 fi

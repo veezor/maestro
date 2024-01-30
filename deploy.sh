@@ -85,6 +85,7 @@ PORT=3000
 if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCESSES" || $ECS_SERVICE_TASK_PROCESSES =~ $deploy_process_type ) ]]; then
 	if [[ $deploy_process_type = "web" || $deploy_process_type =~ ^web[1-9] ]]; then
 		provision_target_group_arn=$(cat .tgarn)
+		echo "----> This is the target group arn: $provision_target_group_arn"
 		if [[ $deploy_process_type =~ ^web[1-9] ]]; then
 			PORT=$(aws secretsmanager get-secret-value --secret-id $deploy_branch_name/$deploy_repository_slug | jq --raw-output '.SecretString' | jq -r .PORT${deploy_process_type^^} || echo false)
 		fi
@@ -118,6 +119,7 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
         	$( [ "$deploy_process_type" = "web" || "$provision_process_type" =~ ^web[1-9] ] && echo "--load-balancers targetGroupArn=$provision_target_group_arn,containerName=$deploy_repository_slug,containerPort=$PORT")
 		)
 		echo "----> First deployment of $release_arn with $deploy_desired_count task(s) in progress on ECS..."
+		echo "----> This is the ECS service output: $deploy_ecs_output"
 	else
 		deploy_ecs_output=$(aws ecs update-service \
 			--cluster $deploy_cluster_id \
