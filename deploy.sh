@@ -202,7 +202,11 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 					deploy_predefined_metric_type="ALBRequestCountPerTarget"
 					type_of='alb'
 					deploy_loadbalancer_arn=$(aws elbv2 describe-load-balancers --name $deploy_cluster_id --query 'LoadBalancers[0].LoadBalancerArn' --output text)
-					deploy_targetgroup_arn=$(aws elbv2 describe-target-groups --load-balancer-arn $deploy_loadbalancer_arn --query 'TargetGroups[0].TargetGroupArn' --output text)
+					if [[ $deploy_process_type =~ ^web[1-9] ]]; then
+						deploy_targetgroup_arn=$(aws elbv2 describe-target-groups --load-balancer-arn $deploy_loadbalancer_arn --query 'TargetGroups[?TargetGroupName==`'$deploy_process_type-$deploy_repository_slug-$deploy_branch_name'`].TargetGroupArn' --output text)
+					else
+						deploy_targetgroup_arn=$(aws elbv2 describe-target-groups --load-balancer-arn $deploy_loadbalancer_arn --query 'TargetGroups[?TargetGroupName==`'$deploy_repository_slug-$deploy_branch_name'`].TargetGroupArn' --output text)
+					fi
 					if [[ $deploy_loadbalancer_arn =~ app.* ]]; then
   					deploy_loadbalancer_arn_final_portion=${BASH_REMATCH[0]}
 					fi
