@@ -1,6 +1,7 @@
 #!/bin/bash
 
 set -eo pipefail
+set -x
 
 VALID_ARGS=$(getopt -o b:p:r:i: --long branch-name:,process-type:,repository-slug:,cluster-id: -n 'provision.sh' -- "$@")
 if [[ $? -ne 0 ]]; then
@@ -81,8 +82,9 @@ if [ "$provision_cluster_status" == "INACTIVE" ] || [ ! -z "$provision_cluster_f
 fi
 
 provision_json_workload_resource_tags=$(jq --raw-input --raw-output '[ split(",") | .[] | "Key=" + split("=")[0] + ",Value=" + split("=")[1] ] | join(" ")' <<<"$WORKLOAD_RESOURCE_TAGS")
-if [ "$provision_process_type" = "web" ]; then
+if [ "$provision_process_type" == "web" ]; then
     provision_alb_name=$provision_repository_slug-$provision_branch_name
+    
     provision_alb_exists=$(aws elbv2 describe-load-balancers --name ${provision_alb_name:0:32} || echo false)
     if [ "$provision_alb_exists" = false ]; then
         if [ -z "$ALB_SCHEME" ]; then
@@ -131,5 +133,48 @@ if [ "$provision_process_type" = "web" ]; then
         --port 80 \
         --tags $provision_json_workload_resource_tags \
         --default-actions Type=forward,TargetGroupArn=$provision_target_group_arn)
+    fi
+fi
+
+if [[ "$provision_process_type" =~ ^web[1-9] ]]; then
+    provision_alb_name=$provision_repository_slug-$provision_branch_name
+    provision_alb_exists=$(aws elbv2 describe-load-balancers --name ${provision_alb_name:0:32} || echo false)
+    provision_alb_arn=$(jq --raw-output '.LoadBalancers[].LoadBalancerArn' <<<$provision_alb_exists)
+    if [ "$provision_alb_exists" = false ]; then
+        echo "----> Error: The Procfile order needs to 'WEB' process be the first."
+        exit 1
+    fi
+    provision_json_workload_resource_tags=$(jq --raw-input --raw-output '[ split(",") | .[] | "Key=" + split("=")[0] + ",Value=" + split("=")[1] ] | join(" ")' <<<"$WORKLOAD_RESOURCE_TAGS")
+    provision_tg_name=$provision_process_type-$provision_repository_slug-$provision_branch_name
+    provision_tg_exists=$(aws elbv2 describe-target-groups --name ${provision_tg_name:0:32} || echo false)
+    if [ -z "$PORT" ]; then
+        # TODO: remember to load it from SM
+        PORT=3000
+    fi
+    if [ "$provision_tg_exists" = false ]; then
+        provision_tg_create_output=$(aws elbv2 create-target-group \
+        --name ${provision_tg_name:0:32} \
+        --protocol HTTP \
+        --port $PORT \
+        --vpc-id $WORKLOAD_VPC_ID \
+        --target-type ip \
+        --tags $provision_json_workload_resource_tags)
+        echo "----> Provisioning Target Group for $provision_process_type"
+        provision_target_group_arn=$(jq --raw-output '.TargetGroups[0].TargetGroupArn' <<<$provision_tg_create_output)
+    else
+        provision_target_group_arn=$(jq --raw-output '.TargetGroups[0].TargetGroupArn' <<<$provision_tg_exists)
+    fi
+    echo $provision_target_group_arn > .tgarn
+    provision_listener_exists=$(aws elbv2 describe-listeners --load-balancer-arn $provision_alb_arn | jq --raw-output '.Listeners[0].ListenerArn' || echo false)
+    if [ ! -f "config/maestro/elb-conditions/$provision_process_type.json" ]; then 
+        echo "----> Error: the listener rule config file not exist. Add you rule condition in config/maestro/elb-conditions/$provision_process_type.json"
+        exit 1 
+    fi
+    if [ "$provision_listener_exists" != false ]; then
+        provision_listener_rule_create_output=$(aws elbv2 create-rule \
+        --listener-arn $provision_listener_exists \
+        --priority 1 \
+        --conditions file://config/maestro/elb-conditions/$provision_process_type.json \
+        --actions Type=forward,TargetGroupArn=$provision_target_group_arn)
     fi
 fi
