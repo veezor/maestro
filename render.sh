@@ -1,6 +1,9 @@
 #!/bin/bash
 
 set -eo pipefail
+if [ -z "$MAESTRO_DEBUG" ]; then
+	set -x
+fi
 
 VALID_ARGS=$(getopt -o ac:e:f:i:n:p:st:u --long app-spec,use-secrets,container-name:,environment-variables:,family-name:,process-type:,image:,task-definition:,aws-sm-name:,aws-sm-arns -n 'render.sh' -- "$@")
 if [[ $? -ne 0 ]]; then

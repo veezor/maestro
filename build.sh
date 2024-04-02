@@ -2,6 +2,10 @@
 
 set -eo pipefail
 
+if [ -z "$MAESTRO_DEBUG" ]; then
+	set -x
+fi
+
 VALID_ARGS=$(getopt -o i: --long image-name: -n 'build.sh' -- "$@")
 if [[ $? -ne 0 ]]; then
 	exit 1;
