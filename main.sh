@@ -1,5 +1,4 @@
 #!/bin/bash
-
 set -eo pipefail
 
 if [ ! -z "$MAESTRO_REPO_OVERRIDE" ]; then
@@ -59,11 +58,6 @@ while IFS= read -r ENV_LINE; do
     export "$ENV_LINE"
     echo "$ENV_LINE" >> .env
 done <<< "$main_application_environment_variables"
-
-
-if [ ! -z "$main_export_errors" ]; then
-    echo "    WARNING: The above noted environment variables were skipped from the export, as they were not identified as a valid value or by a flag."
-fi
 
 if [ -z "$MAESTRO_SKIP_BUILD" ]; then
     build.sh --image-name $IMAGE_NAME
