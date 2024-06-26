@@ -146,10 +146,21 @@ fi
 if [[ "$provision_process_type" =~ ^web[1-9] ]]; then
     provision_alb_name=$provision_repository_slug-$provision_branch_name
     provision_alb_exists=$(aws elbv2 describe-load-balancers --name ${provision_alb_name:0:32} || echo false)
-    provision_alb_arn=$(jq --raw-output '.LoadBalancers[].LoadBalancerArn' <<<$provision_alb_exists)
+    #provision_alb_arn=$(jq --raw-output '.LoadBalancers[].LoadBalancerArn' <<<$provision_alb_exists)
     if [ "$provision_alb_exists" = false ]; then
-        echo "----> Error: The Procfile order needs to 'WEB' process be the first."
-        exit 1
+        provision_alb_subnets=$(jq --raw-input --raw-output 'split(",") | join(" ")' <<<"$ALB_SUBNETS")
+        provision_alb_security_groups=$(jq --raw-input --raw-output 'split(",") | join(" ")' <<<"$ALB_SECURITY_GROUPS")
+        provision_alb_create_output=$(aws elbv2 create-load-balancer \
+        --name ${provision_alb_name:0:32} \
+        --subnets $provision_alb_subnets \
+        --security-groups $provision_alb_security_groups \
+        --scheme $ALB_SCHEME \
+        --tags $provision_json_workload_resource_tags \
+        --type application)
+        echo "----> Provisioned ALB for $provision_process_type"
+        provision_alb_arn=$(jq --raw-output '.LoadBalancers[0].LoadBalancerArn' <<<$provision_alb_create_output)
+    else
+        provision_alb_arn=$(jq --raw-output '.LoadBalancers[0].LoadBalancerArn' <<<$provision_alb_exists)
     fi
     provision_json_workload_resource_tags=$(jq --raw-input --raw-output '[ split(",") | .[] | "Key=" + split("=")[0] + ",Value=" + split("=")[1] ] | join(" ")' <<<"$WORKLOAD_RESOURCE_TAGS")
     provision_tg_name=$provision_process_type-$provision_repository_slug-$provision_branch_name
