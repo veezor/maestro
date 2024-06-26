@@ -82,7 +82,11 @@ fi
 
 provision_json_workload_resource_tags=$(jq --raw-input --raw-output '[ split(",") | .[] | "Key=" + split("=")[0] + ",Value=" + split("=")[1] ] | join(" ")' <<<"$WORKLOAD_RESOURCE_TAGS")
 if [ "$provision_process_type" = "web" ]; then
-    provision_alb_name=$provision_repository_slug-$provision_branch_name
+    if [ ! -z "$ALB_NAME_SLUG" ]
+        provision_alb_name=$ALB_NAME_SLUG
+    else
+        provision_alb_name=$provision_repository_slug-$provision_branch_name
+    fi
     provision_alb_exists=$(aws elbv2 describe-load-balancers --name ${provision_alb_name:0:32} || echo false)
     if [ "$provision_alb_exists" = false ]; then
         if [ -z "$ALB_SCHEME" ]; then
