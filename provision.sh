@@ -108,7 +108,7 @@ if [ "$provision_process_type" = "web" ]; then
     fi
     provision_json_workload_resource_tags=$(jq --raw-input --raw-output '[ split(",") | .[] | "Key=" + split("=")[0] + ",Value=" + split("=")[1] ] | join(" ")' <<<"$WORKLOAD_RESOURCE_TAGS")
     provision_tg_name=$provision_repository_slug-$provision_branch_name
-    provision_tg_exists=$(aws elbv2 describe-target-groups --name ${provision_alb_name:0:32} || echo false)
+    provision_tg_exists=$(aws elbv2 describe-target-groups --name ${provision_tg_name:0:32} || echo false)
     if [ "$provision_tg_exists" = false ]; then
         if [ -z "$PORT" ]; then
             # TODO: remember to load it from SM
