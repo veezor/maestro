@@ -82,8 +82,8 @@ fi
 
 provision_json_workload_resource_tags=$(jq --raw-input --raw-output '[ split(",") | .[] | "Key=" + split("=")[0] + ",Value=" + split("=")[1] ] | join(" ")' <<<"$WORKLOAD_RESOURCE_TAGS")
 if [ "$provision_process_type" = "web" ]; then
-    if [ ! -z "$ALB_NAME_SLUG" ]; then
-        provision_alb_name=$ALB_NAME_SLUG
+    if [ ! -z "$ALB_NAME_OVERRIDE" ]; then
+        provision_alb_name=$ALB_NAME_OVERRIDE
     else
         provision_alb_name=$provision_repository_slug-$provision_branch_name
     fi
