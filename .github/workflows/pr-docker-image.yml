@@ -18,7 +18,7 @@ jobs:
               aws-region: ${{ secrets.AWS_REGION }}
 
           - name: Cache Docker layers
-            uses: satackey/action-docker-layer-caching@v0.0.11
+            uses: jpribyl/action-docker-layer-caching@v0.1.1
             continue-on-error: true
 
           - name: Set tag-variable
