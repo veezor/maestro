@@ -122,28 +122,37 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 	if [[ ! -z "$NEW_RELIC_API_KEY" && ! -z "$NEW_RELIC_APP_ID" ]]; then
 		echo "----> Registering deployment with NewRelic APM"
 
-		git_change_log=$(echo $(git log -1 --pretty="format:%B" | sed -e 's/\"//g'))
-		git_revision_user=$(echo $(git log -1 --pretty="format:%an" | sed -e 's/\"//g'))
-		git_custom_description=$(echo $(git log -1 --pretty="format:${NEW_RELIC_DESCRIPTION}" | sed -e 's/\"//g'))
+		git_change_log=$(git log -1 --pretty="format:%B"| head -c 500 | jq -Rs '. | gsub("\""; "")')
+		git_revision_user=$(git log -1 --pretty="format:%an" | jq -Rs '. | gsub("\""; "")')
+		git_custom_description=$(git log -1 --pretty="format:${NEW_RELIC_DESCRIPTION}" | jq -Rs '. | gsub("\""; "")')
+
 		timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+		json_payload=$(jq -n \
+			--arg rev "${release_arn#*/}" \
+			--arg log "$git_change_log" \
+			--arg desc "$git_custom_description" \
+			--arg user "$git_revision_user" \
+			--arg time "$timestamp" \
+			'{
+				deployment: {
+					revision: $rev,
+					changelog: $log,
+					description: $desc,
+					user: $user,
+					timestamp: $time
+				}
+			}'
+		)
 
 		deploy_newrelic_response=$(curl \
 			-s \
 			-o /dev/null \
-		  -X POST "https://api.newrelic.com/v2/applications/$NEW_RELIC_APP_ID/deployments.json" \
+			-X POST "https://api.newrelic.com/v2/applications/$NEW_RELIC_APP_ID/deployments.json" \
 			-H "Api-Key:$NEW_RELIC_API_KEY" \
 			-w "%{http_code}" \
 			-H "Content-Type: application/json" \
-			-d \
-			"{
-				\"deployment\": {
-					\"revision\": \"${release_arn#*/}\",
-					\"changelog\": \"${git_change_log}\",
-					\"description\": \"${git_custom_description}\",
-					\"user\": \"${git_revision_user}\",
-					\"timestamp\": \"${timestamp}\"
-				}
-			}"
+			-d "$json_payload"
 		)
 
 		if test $deploy_newrelic_response -ne 201; then
