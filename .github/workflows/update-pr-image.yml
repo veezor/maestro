@@ -20,21 +20,24 @@ jobs:
           - name: Remove old Docker AMI in ECR
             run: aws ecr-public batch-delete-image --repository-name maestro --image-ids imageTag=${{ github.event.pull_request.number }}
 
-          - name: Cache Docker layers
-            uses: jpribyl/action-docker-layer-caching@v0.1.1
-            continue-on-error: true
-
           - name: Set new tag-variable
             run: echo "IMAGE_TAG=$(cut -d'/' -f3 <<< $GITHUB_REF)" >> $GITHUB_ENV
 
           - name: Authenticate new Docker
             run: aws ecr-public get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin public.ecr.aws/h4u2q3r3
 
-          - name: Build new Docker AMI
-            run: docker build -t maestro .
+          - name: Set up QEMU
+            uses: docker/setup-qemu-action@v2
 
-          - name: Tag new Docker AMI
-            run: docker tag maestro:latest public.ecr.aws/h4u2q3r3/maestro:${{ env.IMAGE_TAG }}
+          - name: Set up Docker Buildx
+            uses: docker/setup-buildx-action@v2
 
-          - name: Push new Docker AMI
-            run: docker push public.ecr.aws/h4u2q3r3/maestro:${{ env.IMAGE_TAG }}
+          - name: Build and push Docker images
+            uses: docker/build-push-action@v4
+            with:
+              context: .
+              platforms: linux/amd64,linux/arm64
+              push: true
+              tags: public.ecr.aws/h4u2q3r3/maestro:${{ env.IMAGE_TAG }}
+
+          # Remova os passos "Cache Docker layers", "Build Docker AMI", "Tag Docker AMI" e "Push Docker AMI"
