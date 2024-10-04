@@ -42,7 +42,7 @@ else
 	--env-file .env \
 	--publish \
 	--trust-builder \
-    $( [[ -z $REPO_SUB_DIR ]] && echo "--path ${REPO_SUB_DIR}") \
+    $( [[ -z $REPO_SUB_FOLDER ]] && echo "--path ${REPO_SUB_FOLDER}") \
     $( [[ -z $MAESTRO_NO_CACHE || $MAESTRO_NO_CACHE = "false" ]] && echo "--pull-policy if-not-present --cache-image ${build_image_name%:*}:cache") \
     $( [ $MAESTRO_NO_CACHE = "true" ] && echo "--pull-policy always --clear-cache --env USE_YARN_CACHE=false --env NODE_MODULES_CACHE=false") \
     $( [ $MAESTRO_DEBUG = "true" ] && echo "--env NPM_CONFIG_LOGLEVEL=debug --env NODE_VERBOSE=true --verbose")
