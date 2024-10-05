@@ -76,6 +76,7 @@ Variable | Description | Examples/Values | Default
  `NEW_RELIC_APP_ID` | NewRelic APM's application identifier | `123456789` 
  `NEW_RELIC_DESCRIPTION` | Git source's deploys description to NewRelic. (Reference: https://git-scm.com/docs/git-log) | `The author of %h was %an, %ar%nThe title was >>%s<<%n` 
  `DEPLOY_WEBHOOK_URL` | A custom webhook URL for registering deploys | `https://example.com/my-webhook?apikey=123456&cluster_id={{CLUSTER}}&service={{SERVICE}}&repository={{REPOSITORY}}`
+ `REPO_SUB_FOLDER` | Use a sub folder with the application code
  `WORKLOAD_RESOURCE_TAGS` | Tags related to the workload that will be used to all resources provisioned <br><br> *Examples include tag name (case-insensitive) and value* | `workload=myapp` <br> `environment=staging` <br> `owner=me` 
  `WORKLOAD_VPC_ID` | VPC ID of the workload | `vpc-ad1234df` <br> `vpc-qw56er78` <br> `vpc-zxcvghjk`
  `DEPLOYMENT_CIRCUIT_BREAKER_RULE` | Enable or disable circuit breaker | `enable=true,rollback=true`
