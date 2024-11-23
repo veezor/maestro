@@ -1,7 +1,6 @@
 #!/bin/bash
 
 set -eo pipefail
-set -x
 
 VALID_ARGS=$(getopt -o i: --long image-name: -n 'build.sh' -- "$@")
 if [[ $? -ne 0 ]]; then
