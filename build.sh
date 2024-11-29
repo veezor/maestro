@@ -1,7 +1,6 @@
 #!/bin/bash
 
 set -eo pipefail
-set -x
 
 VALID_ARGS=$(getopt -o i: --long image-name: -n 'build.sh' -- "$@")
 if [[ $? -ne 0 ]]; then
@@ -38,6 +37,7 @@ else
 	echo "AWS_ACCESS_KEY_ID=$(jq -r '.AccessKeyId' <<<$build_assume_role)" >> .env
 	echo "AWS_SECRET_ACCESS_KEY=$(jq -r '.SecretAccessKey' <<<$build_assume_role)" >> .env
 	echo "AWS_SESSION_TOKEN=$(jq -r '.Token' <<<$build_assume_role)" >> .env
+
 	pack build ${build_image_name%:*}:latest \
 	--tag $build_image_name \
 	--env-file .env \
@@ -46,7 +46,9 @@ else
     $( [[ -n $REPO_SUB_FOLDER ]] && echo "--path ${REPO_SUB_FOLDER}") \
     $( [[ -z $MAESTRO_NO_CACHE || $MAESTRO_NO_CACHE = "false" ]] && echo "--pull-policy if-not-present --cache-image ${build_image_name%:*}:cache") \
     $( [ $MAESTRO_NO_CACHE = "true" ] && echo "--pull-policy always --clear-cache --env USE_YARN_CACHE=false --env NODE_MODULES_CACHE=false") \
-    $( [ $MAESTRO_DEBUG = "true" ] && echo "--env NPM_CONFIG_LOGLEVEL=debug --env NODE_VERBOSE=true --verbose")
+    $( [ $MAESTRO_DEBUG = "true" ] && echo "--env NPM_CONFIG_LOGLEVEL=debug --env NODE_VERBOSE=true --verbose") \
+    $( [[ -z $MAESTRO_RUN_IMAGE ]] && echo "--run-image $MAESTRO_RUN_IMAGE")
+
     docker tag $build_builder_name ${build_image_name%:*}:$build_builder_tag
 	docker push ${build_image_name%:*}:$build_builder_tag 2> /dev/null
 fi

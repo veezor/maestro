@@ -71,7 +71,8 @@ Variable | Description | Examples/Values | Default
  `MAESTRO_DEBUG` | Amplify verbosity of the build <br><br> **Choose only one of the example values** | `true` <br> `false` 
  `MAESTRO_NO_CACHE` | If the cache layer shouldn't be used in the pack build <br><br> **Choose only one of the example values** | `true` <br> `false` 
  `MAESTRO_ONLY_BUILD` | Stops after build if `true`, leave empty otherwise | `true` 
- `MAESTRO_SKIP_BUILD` | Skips build and process following steps if true, leave empty otherwise | `true` 
+ `MAESTRO_SKIP_BUILD` | Skips build and process following steps if true, leave empty otherwise | `true`
+ `MAESTRO_RUN_IMAGE` | Provides the base image for application images. | `123456789.dkr.ecr.us-east-1.amazonaws.com/base_image:latest` | null
  `NEW_RELIC_API_KEY` | A user API key from NewRelic for registering deploys | `NRAK-XXXXXXXXXXXXXXXXXXXXXXXXX`
  `NEW_RELIC_APP_ID` | NewRelic APM's application identifier | `123456789` 
  `NEW_RELIC_DESCRIPTION` | Git source's deploys description to NewRelic. (Reference: https://git-scm.com/docs/git-log) | `The author of %h was %an, %ar%nThe title was >>%s<<%n` 
@@ -120,6 +121,11 @@ Maestro allows you to register a deploy with a custom webhook using a standard `
 - `{{REPO_LINK}}` for the repository's link
 - `{{BUILD_LINK}}` for the build's log link
 
+### Troubleshooting
+1. DockerHub hate limit
+If you are esperiencing DockerHub rate limits, clone the `heroku/heroku:xx-cnb` image to your ECR repository. Edit the `buildspec` section on your `Codebuild`, and add the following instruction inside the `commands:` session, at the first line.
+ <br>
+`- pack config run-image-mirrors add heroku/heroku:20-cnb --mirror public.ecr.aws/x1o4r4n3/maestro-builder-20:runimage`
 
 ### Contributing
 Feel free to suggest improvements by opening pull requests.
