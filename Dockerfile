@@ -1,6 +1,6 @@
-FROM public.ecr.aws/amazonlinux/amazonlinux:2 AS core
+FROM --platform=$BUILDPLATFORM amazonlinux:2 AS core
 
-# Install git, SSH, and other utilities
+# Instalar git, SSH e outras utilidades
 RUN set -ex \
     && yum install -y openssh-clients \
     && mkdir ~/.ssh \
@@ -17,16 +17,18 @@ RUN set -ex \
 
 RUN useradd codebuild-user
 
-#=======================End of layer: core  =================
+#=======================Fim da camada: core  =================
 
 FROM core AS tools
 
-# Install Cloud Native Buildpacks pack CLI
+# Instalar Cloud Native Buildpacks pack CLI
 RUN set -ex \
    && PACK_VERSION=0.24.0 \
-   && (curl -sSL "https://github.com/buildpacks/pack/releases/download/v${PACK_VERSION}/pack-v${PACK_VERSION}-linux.tgz" | tar -C /usr/local/bin/ --no-same-owner -xzv pack)
+   && ARCH=$(uname -m) \
+   && if [ "$ARCH" = "x86_64" ]; then PACK_ARCH="linux"; else PACK_ARCH="linux-arm64"; fi \
+   && (curl -sSL "https://github.com/buildpacks/pack/releases/download/v${PACK_VERSION}/pack-v${PACK_VERSION}-${PACK_ARCH}.tgz" | tar -C /usr/local/bin/ --no-same-owner -xzv pack)
 
-# Install Git
+# Instalar Git
 RUN set -ex \
    && GIT_VERSION=2.46.2 \
    && GIT_TAR_FILE=git-$GIT_VERSION.tar.gz \
@@ -39,7 +41,7 @@ RUN set -ex \
    && cd .. ; rm -rf git-$GIT_VERSION \
    && rm -rf $GIT_TAR_FILE /tmp/*
 
-# Install stunnel
+# Instalar stunnel
 RUN set -ex \
    && STUNNEL_VERSION=5.56 \
    && STUNNEL_TAR=stunnel-$STUNNEL_VERSION.tar.gz \
@@ -56,26 +58,39 @@ RUN set -ex \
    && cat key.pem cert.pem >> /usr/local/etc/stunnel/stunnel.pem \
    && cd .. ; rm -rf stunnel-${STUNNEL_VERSION}*
 
-# AWS Tools
-# https://docs.aws.amazon.com/eks/latest/userguide/install-aws-iam-authenticator.html https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ECS_CLI_installation.html https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
-RUN curl -sS -o /usr/local/bin/aws-iam-authenticator https://amazon-eks.s3.us-west-2.amazonaws.com/1.16.8/2020-04-16/bin/linux/amd64/aws-iam-authenticator \
-    && curl -sS -o /usr/local/bin/kubectl https://amazon-eks.s3.us-west-2.amazonaws.com/1.16.8/2020-04-16/bin/linux/amd64/kubectl \
-    && curl -sS -o /usr/local/bin/ecs-cli https://s3.amazonaws.com/amazon-ecs-cli/ecs-cli-linux-amd64-latest \
-    && curl -sS -o awscliv2.zip https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip \
-    && curl -sS -L https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_Linux_amd64.tar.gz | tar xz -C /usr/local/bin \
+# Ferramentas AWS
+RUN set -ex \
+    && ARCH=$(uname -m) \
+    && if [ "$ARCH" = "x86_64" ]; then \
+         curl -sS -o /usr/local/bin/aws-iam-authenticator https://amazon-eks.s3.us-west-2.amazonaws.com/1.16.8/2020-04-16/bin/linux/amd64/aws-iam-authenticator; \
+         curl -sS -o /usr/local/bin/kubectl https://amazon-eks.s3.us-west-2.amazonaws.com/1.16.8/2020-04-16/bin/linux/amd64/kubectl; \
+         curl -sS -o /usr/local/bin/ecs-cli https://s3.amazonaws.com/amazon-ecs-cli/ecs-cli-linux-amd64-latest; \
+         curl -sS -o awscliv2.zip https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip; \
+       else \
+         curl -sS -o /usr/local/bin/aws-iam-authenticator https://amazon-eks.s3.us-west-2.amazonaws.com/1.16.8/2020-04-16/bin/linux/arm64/aws-iam-authenticator; \
+         curl -sS -o /usr/local/bin/kubectl https://amazon-eks.s3.us-west-2.amazonaws.com/1.16.8/2020-04-16/bin/linux/arm64/kubectl; \
+         curl -sS -o /usr/local/bin/ecs-cli https://s3.amazonaws.com/amazon-ecs-cli/ecs-cli-linux-arm64-latest; \
+         curl -sS -o awscliv2.zip https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip; \
+       fi \
+    && curl -sS -L https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_$(uname -m).tar.gz | tar xz -C /usr/local/bin \
     && chmod +x /usr/local/bin/kubectl /usr/local/bin/aws-iam-authenticator /usr/local/bin/ecs-cli /usr/local/bin/eksctl
 
-# Configure SSM & AWS CLI
+# Configurar SSM & AWS CLI
 RUN set -ex \
-    && yum install -y https://s3.amazonaws.com/amazon-ssm-us-east-1/2.3.1644.0/linux_amd64/amazon-ssm-agent.rpm \
+    && ARCH=$(uname -m) \
+    && if [ "$ARCH" = "x86_64" ]; then \
+         yum install -y https://s3.amazonaws.com/amazon-ssm-us-east-1/latest/linux_amd64/amazon-ssm-agent.rpm; \
+       else \
+         yum install -y https://s3.amazonaws.com/amazon-ssm-us-east-1/latest/linux_arm64/amazon-ssm-agent.rpm; \
+       fi \
     && unzip awscliv2.zip \
     && ./aws/install
 
-#=======================End of layer: tools  =================
+#=======================Fim da camada: tools  =================
 
 FROM tools AS runtimes
 
-#Docker 19
+# Docker 19
 ENV DOCKER_BUCKET="download.docker.com" \
     DOCKER_CHANNEL="stable" \
     DIND_COMMIT="3b5fac462d21ca164b3778647420016315289034" \
@@ -87,26 +102,27 @@ ENV DOCKER_VERSION="19.03.11"
 VOLUME /var/lib/docker
 
 RUN set -ex \
-    && curl -fSL "https://${DOCKER_BUCKET}/linux/static/${DOCKER_CHANNEL}/x86_64/docker-${DOCKER_VERSION}.tgz" -o docker.tgz \
+    && ARCH=$(uname -m) \
+    && if [ "$ARCH" = "x86_64" ]; then DOCKER_ARCH="x86_64"; else DOCKER_ARCH="aarch64"; fi \
+    && curl -fSL "https://${DOCKER_BUCKET}/linux/static/${DOCKER_CHANNEL}/${DOCKER_ARCH}/docker-${DOCKER_VERSION}.tgz" -o docker.tgz \
     && echo "${DOCKER_SHA256} *docker.tgz" | sha256sum -c - \
     && tar --extract --file docker.tgz --strip-components 1  --directory /usr/local/bin/ \
     && rm docker.tgz \
     && docker -v \
-    # set up subuid/subgid so that "--userns-remap=default" works out-of-the-box
     && groupadd dockremap \
     && groupadd docker \
     && useradd -g dockremap dockremap \
     && echo 'dockremap:165536:65536' >> /etc/subuid \
     && echo 'dockremap:165536:65536' >> /etc/subgid \
     && wget -nv "https://raw.githubusercontent.com/docker/docker/${DIND_COMMIT}/hack/dind" -O /usr/local/bin/dind \
-    && curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-Linux-x86_64 > /usr/local/bin/docker-compose \
+    && curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-${DOCKER_ARCH} > /usr/local/bin/docker-compose \
     && chmod +x /usr/local/bin/dind /usr/local/bin/docker-compose \
     && docker-compose version
 
-#=======================End of layer: runtimes  =================
+#=======================Fim da camada: runtimes  =================
 FROM runtimes AS maestro_v1
 
-# Configure SSH
+# Configurar SSH
 COPY ssh_config /root/.ssh/config
 COPY runtimes.yml /codebuild/image/config/runtimes.yml
 COPY *.sh /usr/local/bin/
@@ -115,4 +131,4 @@ COPY amazon-ssm-agent.json          /etc/amazon/ssm/
 
 ENTRYPOINT ["dockerd-entrypoint.sh"]
 
-#=======================End of layer: maestro_v1  =================
+#=======================Fim da camada: maestro_v1  =================
