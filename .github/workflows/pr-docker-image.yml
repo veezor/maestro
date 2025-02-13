@@ -1,0 +1,43 @@
+on:
+  pull_request:
+    types: [opened, reopened, push]
+
+jobs:
+    register:
+        runs-on:
+            - ubuntu-latest
+        steps:
+          - name: Checkout
+            uses: actions/checkout@v4
+
+          - name: Configure AWS credentials
+            uses: aws-actions/configure-aws-credentials@v4
+            with:
+              aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+              aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+              aws-region: ${{ secrets.AWS_REGION }}
+
+          - name: Cache Docker layers
+            uses: jpribyl/action-docker-layer-caching@v0.1.1
+            continue-on-error: true
+
+          - name: Set tag-variable
+            run: echo "IMAGE_TAG=$(cut -d'/' -f3 <<< $GITHUB_REF)" >> $GITHUB_ENV
+
+          - name: Authenticate Docker
+            run: aws ecr-public get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin public.ecr.aws/h4u2q3r3
+
+          - name: Set up QEMU
+            uses: docker/setup-qemu-action@v2
+
+          - name: Set up Docker Buildx
+            uses: docker/setup-buildx-action@v2
+
+          - name: Build and push Docker images
+            uses: docker/build-push-action@v4
+            with:
+              context: .
+              platforms: linux/amd64,linux/arm64
+              push: true
+              tags: |
+                public.ecr.aws/h4u2q3r3/maestro:${{ env.IMAGE_TAG }}
