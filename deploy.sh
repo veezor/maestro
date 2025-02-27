@@ -92,29 +92,31 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 
 	if [ ! -z "$deploy_create_service" ]; then
 		deploy_ecs_output=$(aws ecs create-service \
-		--cluster $deploy_cluster_id \
-		--service-name $deploy_service_name \
-		--task-definition $release_arn \
-		--network-configuration "awsvpcConfiguration={subnets=[$ECS_SERVICE_SUBNETS],securityGroups=[$ECS_SERVICE_SECURITY_GROUPS]}" \
-		--desired-count $deploy_desired_count \
-		--enable-execute-command \
-		--deployment-configuration "maximumPercent=200,minimumHealthyPercent=100,deploymentCircuitBreaker={$DEPLOYMENT_CIRCUIT_BREAKER_RULE}" \
-		--propagate-tags TASK_DEFINITION \
-		--tags $deploy_json_workload_resource_tags \
-        $( [ "$deploy_process_type" = "web" ] && echo "--load-balancers targetGroupArn=$provision_target_group_arn,containerName=$deploy_repository_slug,containerPort=$PORT")
+			--cluster $deploy_cluster_id \
+			--service-name $deploy_service_name \
+			--task-definition $release_arn \
+			--network-configuration "awsvpcConfiguration={subnets=[$ECS_SERVICE_SUBNETS],securityGroups=[$ECS_SERVICE_SECURITY_GROUPS]}" \
+			--desired-count $deploy_desired_count \
+			--enable-execute-command \
+			--deployment-configuration "maximumPercent=200,minimumHealthyPercent=100,deploymentCircuitBreaker={$DEPLOYMENT_CIRCUIT_BREAKER_RULE}" \
+			--propagate-tags TASK_DEFINITION \
+			--tags $deploy_json_workload_resource_tags \
+			$( [ -n "$SERVICE_CONNECT_NAMESPACE" ] && echo "--service-connect-configuration enabled=true,namespace=$SERVICE_CONNECT_NAMESPACE,services=[{portName=$deploy_repository_slug-$deploy_process_type,discoveryName=$deploy_service_name,clientAliases=[{port=$PORT,dnsName=$deploy_process_type}]}]") \
+			$( [ "$deploy_process_type" = "web" ] && echo "--load-balancers targetGroupArn=$provision_target_group_arn,containerName=$deploy_repository_slug,containerPort=$PORT")
 		)
 		echo "----> First deployment of $release_arn with $deploy_desired_count task(s) in progress on ECS..."
 	else
 		deploy_ecs_output=$(aws ecs update-service \
-		--cluster $deploy_cluster_id \
-		--service $deploy_service_name \
-		--task-definition $release_arn \
-		--network-configuration "awsvpcConfiguration={subnets=[$ECS_SERVICE_SUBNETS],securityGroups=[$ECS_SERVICE_SECURITY_GROUPS]}" \
-		--enable-execute-command \
-		--deployment-configuration "maximumPercent=200,minimumHealthyPercent=100,deploymentCircuitBreaker={$DEPLOYMENT_CIRCUIT_BREAKER_RULE}" \
-		--propagate-tags TASK_DEFINITION \
-		--force-new-deployment \
-		$( [ -z "$deploy_max_autoscaling_count" ] && echo "--desired-count $deploy_desired_count")
+			--cluster $deploy_cluster_id \
+			--service $deploy_service_name \
+			--task-definition $release_arn \
+			--network-configuration "awsvpcConfiguration={subnets=[$ECS_SERVICE_SUBNETS],securityGroups=[$ECS_SERVICE_SECURITY_GROUPS]}" \
+			--enable-execute-command \
+			--deployment-configuration "maximumPercent=200,minimumHealthyPercent=100,deploymentCircuitBreaker={$DEPLOYMENT_CIRCUIT_BREAKER_RULE}" \
+			--propagate-tags TASK_DEFINITION \
+			--force-new-deployment \
+			$( [ -n "$SERVICE_CONNECT_NAMESPACE" ] && echo "--service-connect-configuration enabled=true,namespace=$SERVICE_CONNECT_NAMESPACE,services=[{portName=$deploy_repository_slug-$deploy_process_type,discoveryName=$deploy_service_name,clientAliases=[{port=$PORT,dnsName=$deploy_process_type}]}]") \
+			$( [ -z "$deploy_max_autoscaling_count" ] && echo "--desired-count $deploy_desired_count")
 		)
 		echo "----> Rolling deployment of $release_arn with $deploy_desired_count task(s) in progress on ECS..."
 	fi

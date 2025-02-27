@@ -25,7 +25,8 @@
           {
             "hostPort": 3000,
             "protocol": "tcp",
-            "containerPort": 3000
+            "containerPort": 3000,
+            "name": ""
           }
       ],
       "entryPoint": ["web"],

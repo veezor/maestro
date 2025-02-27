@@ -118,6 +118,11 @@ if [ ! -z "$render_process_type" ] && [ ! "$render_process_type" == "web" ]; the
 	cat <<< $(jq ".containerDefinitions[]=(.containerDefinitions[] | select(.name==\"$render_container_name\") | .entryPoint[0] = \"$render_process_type\" | del(.portMappings))" $render_task_definition) > $render_task_definition
 fi
 
+if [ ! -z "$render_process_type" ] && [ "$render_process_type" == "web" ]; then
+	echo "----> Defining entrypoint for non-web process type $render_process_type"
+	cat <<< $(jq ".containerDefinitions[]=(.containerDefinitions[] | select(.name==\"$render_container_name\") | .entryPoint[0] = \"$render_process_type\" | .portMappings[0].name = \"$render_container_name-$render_process_type\")" $render_task_definition) > $render_task_definition
+fi
+
 if [ ! -z "$render_process_type" ] && [ "$render_process_type" == "scheduledtasks" ]; then
 	echo "----> Defining launcher entrypoint for process type $render_process_type"
 	cat <<< $(jq ".containerDefinitions[]=(.containerDefinitions[] | select(.name==\"$render_container_name\") | .entryPoint[0] = \"launcher\")" $render_task_definition) > $render_task_definition
