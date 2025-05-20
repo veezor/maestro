@@ -23,7 +23,7 @@ FROM core AS tools
 
 # Install Cloud Native Buildpacks pack CLI
 RUN set -ex \
-   && PACK_VERSION=0.24.0 \
+   && PACK_VERSION=0.37.0 \
    && (curl -sSL "https://github.com/buildpacks/pack/releases/download/v${PACK_VERSION}/pack-v${PACK_VERSION}-linux.tgz" | tar -C /usr/local/bin/ --no-same-owner -xzv pack)
 
 # Install Git
