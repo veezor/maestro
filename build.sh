@@ -26,8 +26,8 @@ if [ -z "$build_image_name" ]; then
 	exit 1
 fi
 
-if [ $(DOCKER_CLI_EXPERIMENTAL=enabled docker manifest inspect $build_image_name 2> /dev/null ; echo $?) -eq 0 ]; then
-	echo "----> Skipping build as image already exists"
+if DOCKER_CLI_EXPERIMENTAL=enabled docker manifest inspect "$build_image_name" &>/dev/null; then
+    echo "----> Skipping build as image already exists"
 else
 	build_builder_name=`grep builder ${REPO_SUB_FOLDER:+$REPO_SUB_FOLDER/}project.toml | cut -d= -f2 | tr -d '" '`
 	build_builder_tag=`echo $build_builder_name | tr /: -`
