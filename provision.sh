@@ -33,7 +33,7 @@ while [ : ]; do
 done
 
 if [ -z "$provision_branch_name" ]; then
-	echo "Error: Missing required parameter --branch-name"
+	echo "Error: Missing required parameters --branch-name"
 	exit 1
 fi
 
