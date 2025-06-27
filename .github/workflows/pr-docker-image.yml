@@ -41,3 +41,5 @@ jobs:
               push: true
               tags: |
                 public.ecr.aws/h4u2q3r3/maestro:${{ env.IMAGE_TAG }}
+              cache-from: type=gha
+              cache-to: type=gha,mode=max
