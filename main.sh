@@ -59,7 +59,7 @@ for ENV_LINE in $main_application_environment_variables; do
     if [[ $ENV_LINE =~ ${main_export_regex} ]]; then
         key="${ENV_LINE%%=*}"
         if [ $key == "AWS_ACCESS_KEY_ID" ] || [ $key == "AWS_SECRET_ACCESS_KEY" ]; then
-            echo -e "\033[1mWARNING: the code need to be refactored to not use AWS credentials from secrets manager, but use the IAM role of the CodeBuild project instead!\033[0m"
+            echo -e "\033[1mWARNING: the code need to be refactored to call AWS credentials using different names, because have this credentials in secrets manager conflicts with the IAM role of the CodeBuild project!\033[0m"
             exit 0
         fi
         export $ENV_LINE
