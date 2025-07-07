@@ -103,6 +103,12 @@ if [ "$provision_process_type" = "web" ]; then
         --type application)
         echo "----> Provisioned ALB for $provision_process_type"
         provision_alb_arn=$(jq --raw-output '.LoadBalancers[0].LoadBalancerArn' <<<$provision_alb_create_output)
+        provision_default_listener_create_output=$(aws elbv2 create-listener \
+        --load-balancer-arn $provision_alb_arn \
+        --protocol HTTPS \
+        --port 443 \
+        --tags $provision_json_workload_resource_tags \
+        --default-actions Type=fixed-response,FixedResponseConfig='{"MessageBody":"Maestro default response","StatusCode":"200","ContentType":"text/plain"}')
     else
         provision_alb_arn=$(jq --raw-output '.LoadBalancers[0].LoadBalancerArn' <<<$provision_alb_exists)
     fi
@@ -127,7 +133,7 @@ if [ "$provision_process_type" = "web" ]; then
         provision_target_group_arn=$(jq --raw-output '.TargetGroups[0].TargetGroupArn' <<<$provision_tg_exists)
     fi
     echo $provision_target_group_arn > .tgarn
-    provision_listener_exists=$(aws elbv2 describe-listeners --load-balancer-arn $provision_alb_arn | jq '.Listeners | length')
+    provision_listener_exists=$(aws elbv2 describe-listeners --load-balancer-arn $provision_alb_arn | jq '[.Listeners[] | select(.Port == 80)] | length')
     if [ "$provision_listener_exists" -eq "0" ]; then
         provision_listener_create_output=$(aws elbv2 create-listener \
         --load-balancer-arn $provision_alb_arn \
