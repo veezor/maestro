@@ -108,7 +108,7 @@ if [ "$provision_process_type" = "web" ]; then
         --protocol HTTPS \
         --port 443 \
         --tags $provision_json_workload_resource_tags \
-        --default-actions Type="fixed-response","FixedResponseConfig"={"MessageBody":"Maestro default response","StatusCode":"200","ContentType":"text/plain"})
+        --default-actions Type="fixed-response","FixedResponseConfig"={"MessageBody": "Maestro default response","StatusCode": "200","ContentType": "text/plain"})
     else
         provision_alb_arn=$(jq --raw-output '.LoadBalancers[0].LoadBalancerArn' <<<$provision_alb_exists)
     fi
