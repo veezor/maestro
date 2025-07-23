@@ -1,6 +1,10 @@
 #!/bin/bash
 set -eo pipefail
 
+if [ $MAESTRO_DEBUG == "true" ]; then
+    set -x
+fi
+
 if [ ! -z "$MAESTRO_REPO_OVERRIDE" ]; then
     REPO_SLUG=$MAESTRO_REPO_OVERRIDE
 fi
