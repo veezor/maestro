@@ -89,8 +89,7 @@ else
     echo "----> Skipping build and running further steps..."
 fi
 
-LATEST_IMAGE_NAME=${IMAGE_NAME | cut -d ':' -f1}
-LATEST_IMAGE_NAME=$LATEST_IMAGE_NAME:latest
+LATEST_IMAGE_NAME="$(cut -d ':' -f1 <<< "$IMAGE_NAME"):latest"
 main_processes=$(pack inspect $LATEST_IMAGE_NAME | sed '0,/^Processes:$/d' | tail -n +2 | cut -d' ' -f3)
 main_processes=${main_processes%$'\n'*}
 main_processes=${main_processes%$'\n'}
