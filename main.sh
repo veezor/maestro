@@ -1,6 +1,10 @@
 #!/bin/bash
 set -eo pipefail
 
+if [ $MAESTRO_DEBUG == "true" ]; then
+    set -x
+fi
+
 if [ ! -z "$MAESTRO_REPO_OVERRIDE" ]; then
     REPO_SLUG=$MAESTRO_REPO_OVERRIDE
 fi
@@ -85,7 +89,8 @@ else
     echo "----> Skipping build and running further steps..."
 fi
 
-main_processes=$(pack inspect $IMAGE_NAME | sed '0,/^Processes:$/d' | tail -n +2 | cut -d' ' -f3)
+LATEST_IMAGE_NAME="$(cut -d ':' -f1 <<< "$IMAGE_NAME"):latest"
+main_processes=$(pack inspect $LATEST_IMAGE_NAME | sed '0,/^Processes:$/d' | tail -n +2 | cut -d' ' -f3)
 main_processes=${main_processes%$'\n'*}
 main_processes=${main_processes%$'\n'}
 # refactor line break below

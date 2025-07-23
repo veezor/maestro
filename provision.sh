@@ -2,6 +2,10 @@
 
 set -eo pipefail
 
+if [ $MAESTRO_DEBUG == "true" ]; then
+    set -x
+fi
+
 VALID_ARGS=$(getopt -o b:p:r:i: --long branch-name:,process-type:,repository-slug:,cluster-id: -n 'provision.sh' -- "$@")
 if [[ $? -ne 0 ]]; then
 	exit 1;
@@ -74,7 +78,7 @@ if [ "$provision_cluster_status" == "INACTIVE" ] || [ ! -z "$provision_cluster_f
 	provision_create_cluster=$(aws ecs create-cluster \
 	--cluster-name $provision_cluster_id \
 	--tags $provision_json_workload_resource_tags \
-	--capacity-provider FARGATE FARGATE_SPOT \
+	--capacity-provider FARGATE FARGATE_SPOT EC2 \
 	--default-capacity-provider-strategy capacityProvider=FARGATE_SPOT,weight=1
 	)
 	echo "----> First deployment detected. Provisioning cluster $provision_cluster_id"

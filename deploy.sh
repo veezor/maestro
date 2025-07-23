@@ -2,6 +2,10 @@
 
 set -eo pipefail
 
+if [ $MAESTRO_DEBUG == "true" ]; then
+    set -x
+fi
+
 VALID_ARGS=$(getopt -o a:ci:p:r:s: --long account-id:,create-service,cluster-id:,process-type:,repository-slug:,service-name: -n 'deploy.sh' -- "$@")
 if [[ $? -ne 0 ]]; then
 	exit 1;
