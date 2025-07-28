@@ -2,6 +2,10 @@
 
 set -eo pipefail
 
+if [ $MAESTRO_DEBUG == "true" ]; then
+	set -x
+fi
+
 VALID_ARGS=$(getopt -o b:i:l:p:r: --long branch-name:,cluster-id:,image-name:,process-type:,repository-slug: -n 'release.sh' -- "$@")
 if [[ $? -ne 0 ]]; then
 	exit 1;
