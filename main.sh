@@ -1,5 +1,6 @@
 #!/bin/bash
 set -eo pipefail
+set -x
 
 if [ $MAESTRO_DEBUG == "true" ]; then
     set -x
@@ -52,7 +53,12 @@ fi
 echo "AWS CLI Version: $(aws --version)"
 echo "Buildpack CLI Version: $(pack --version)"
 
-COMMIT_SHORT=$(head -c 8 <<<$CODEBUILD_RESOLVED_SOURCE_VERSION)
+if [[ -n "$CODEBUILD_RESOLVED_SOURCE_VERSION" ]]; then
+    COMMIT_SHORT=${CODEBUILD_RESOLVED_SOURCE_VERSION:0:8}
+else
+    COMMIT_SHORT=$(tr -dc a-z0-9 </dev/urandom | head -c 8 || true)
+fi
+
 IMAGE_NAME=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$REPO_SLUG-$BRANCH:$COMMIT_SHORT
 
 main_application_secrets=$(aws secretsmanager get-secret-value --secret-id $BRANCH/$REPO_SLUG)
