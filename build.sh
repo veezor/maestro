@@ -53,15 +53,6 @@ else
     $( [ $MAESTRO_DEBUG = "true" ] && echo "--env NPM_CONFIG_LOGLEVEL=debug --env NODE_VERBOSE=true --verbose") \
     $( [[ -n $MAESTRO_RUN_IMAGE ]] && echo "--run-image $MAESTRO_RUN_IMAGE")
 
-    echo "build_builder_name"
-    echo $build_builder_name
-    echo "build_builder_name%:*"
-    echo ${build_builder_name%:*}
-    echo "build_builder_tag"
-    echo $build_builder_tag
-    echo "build_image_name%:*"
-    echo ${build_image_name%:*}
-
     docker tag $build_builder_name ${build_image_name%:*}:$build_builder_tag
 	docker push ${build_image_name%:*}:$build_builder_tag 2> /dev/null
 fi

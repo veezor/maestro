@@ -1,6 +1,5 @@
 #!/bin/bash
 set -eo pipefail
-set -x
 
 if [ $MAESTRO_DEBUG == "true" ]; then
     set -x
