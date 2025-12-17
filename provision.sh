@@ -144,7 +144,11 @@ if [ "$provision_process_type" = "web" ]; then
 fi
 
 if [[ "$provision_process_type" =~ ^web[1-9] ]]; then
-    provision_alb_name=$provision_repository_slug-$provision_branch_name
+    if [ ! -z "$ALB_NAME_OVERRIDE" ]; then
+        provision_alb_name=$ALB_NAME_OVERRIDE
+    else
+        provision_alb_name=$provision_repository_slug-$provision_branch_name
+    fi
     provision_alb_exists=$(aws elbv2 describe-load-balancers --name ${provision_alb_name:0:32} || echo false)
     #provision_alb_arn=$(jq --raw-output '.LoadBalancers[].LoadBalancerArn' <<<$provision_alb_exists)
     if [ "$provision_alb_exists" = false ]; then
