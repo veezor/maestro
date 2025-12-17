@@ -113,14 +113,16 @@ if [ "$provision_process_type" = "web" ]; then
     fi
     provision_json_workload_resource_tags=$(jq --raw-input --raw-output '[ split(",") | .[] | "Key=" + split("=")[0] + ",Value=" + split("=")[1] ] | join(" ")' <<<"$WORKLOAD_RESOURCE_TAGS")
     provision_tg_name=$provision_repository_slug-$provision_branch_name
-    provision_tg_exists=$(aws elbv2 describe-target-groups --name ${provision_tg_name:0:32} || echo false)
+    provision_tg_name=${provision_tg_name:0:32}
+    provision_tg_name=${provision_tg_name%-}
+    provision_tg_exists=$(aws elbv2 describe-target-groups --name $provision_tg_name || echo false)
     if [ "$provision_tg_exists" = false ]; then
         if [ -z "$PORT" ]; then
             # TODO: remember to load it from SM
             PORT=3000
         fi
         provision_tg_create_output=$(aws elbv2 create-target-group \
-        --name ${provision_tg_name:0:32} \
+        --name $provision_tg_name \
         --protocol HTTP \
         --port $PORT \
         --vpc-id $WORKLOAD_VPC_ID \
@@ -168,14 +170,16 @@ if [[ "$provision_process_type" =~ ^web[1-9] ]]; then
     fi
     provision_json_workload_resource_tags=$(jq --raw-input --raw-output '[ split(",") | .[] | "Key=" + split("=")[0] + ",Value=" + split("=")[1] ] | join(" ")' <<<"$WORKLOAD_RESOURCE_TAGS")
     provision_tg_name=$provision_process_type-$provision_repository_slug-$provision_branch_name
-    provision_tg_exists=$(aws elbv2 describe-target-groups --name ${provision_tg_name:0:32} || echo false)
+    provision_tg_name=${provision_tg_name:0:32}
+    provision_tg_name=${provision_tg_name%-}
+    provision_tg_exists=$(aws elbv2 describe-target-groups --name $provision_tg_name || echo false)
     if [ -z "$PORT" ]; then
         # TODO: remember to load it from SM
         PORT=3000
     fi
     if [ "$provision_tg_exists" = false ]; then
         provision_tg_create_output=$(aws elbv2 create-target-group \
-        --name ${provision_tg_name:0:32} \
+        --name $provision_tg_name \
         --protocol HTTP \
         --port $PORT \
         --vpc-id $WORKLOAD_VPC_ID \
@@ -188,15 +192,15 @@ if [[ "$provision_process_type" =~ ^web[1-9] ]]; then
     fi
     echo $provision_target_group_arn > .tgarn
     provision_listener_exists=$(aws elbv2 describe-listeners --load-balancer-arn $provision_alb_arn | jq --raw-output '.Listeners[0].ListenerArn' || echo false)
-    if [ ! -f "config/maestro/elb-conditions/$provision_process_type.json" ]; then 
-        echo "----> Error: the listener rule config file not exist. Add you rule condition in config/maestro/elb-conditions/$provision_process_type.json"
-        exit 1 
-    fi
-    if [ "$provision_listener_exists" != false ]; then
-        provision_listener_rule_create_output=$(aws elbv2 create-rule \
-        --listener-arn $provision_listener_exists \
-        --priority 1 \
-        --conditions file://config/maestro/elb-conditions/$provision_process_type.json \
-        --actions Type=forward,TargetGroupArn=$provision_target_group_arn)
-    fi
+    # if [ ! -f "config/maestro/elb-conditions/$provision_process_type.json" ]; then 
+    #     echo "----> Error: the listener rule config file not exist. Add you rule condition in config/maestro/elb-conditions/$provision_process_type.json"
+    #     exit 1 
+    # fi
+    # if [ "$provision_listener_exists" != false ]; then
+    #     provision_listener_rule_create_output=$(aws elbv2 create-rule \
+    #     --listener-arn $provision_listener_exists \
+    #     --priority 1 \
+    #     --conditions file://config/maestro/elb-conditions/$provision_process_type.json \
+    #     --actions Type=forward,TargetGroupArn=$provision_target_group_arn)
+    # fi
 fi
