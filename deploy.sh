@@ -6,7 +6,7 @@ if [ $MAESTRO_DEBUG == "true" ]; then
     set -x
 fi
 
-VALID_ARGS=$(getopt -o a:ci:p:r:s: --long account-id:,create-service,cluster-id:,process-type:,repository-slug:,service-name: -n 'deploy.sh' -- "$@")
+VALID_ARGS=$(getopt -o a:ci:p:r:s: --long account-id:,create-service,cluster-id:,process-type:,repository-slug:,service-name:,branch-name: -n 'deploy.sh' -- "$@")
 if [[ $? -ne 0 ]]; then
 	exit 1;
 fi
@@ -44,6 +44,11 @@ while [ : ]; do
 			#echo "Service name is '$2'"
 			shift 2
 			;;
+		-b | --branch-name)
+			deploy_branch_name=$2
+			#echo "Branch name is '$2'"
+			shift 2
+			;;
 		--) shift;
 		    break
 		    ;;
@@ -70,10 +75,20 @@ if [ -z "$deploy_service_name" ]; then
 	exit 1
 fi
 
+if [ -z "$deploy_branch_name" ]; then
+	echo "Error: Missing required parameter --branch-name"
+	exit 1
+fi
+
 release_arn=$(cat .releasearn)
+PORT=3000
 if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCESSES" || $ECS_SERVICE_TASK_PROCESSES =~ $deploy_process_type ) ]]; then
-	if [[ $deploy_process_type = "web" ]]; then
+	if [[ $deploy_process_type = "web" || $deploy_process_type =~ ^web[1-9] ]]; then
 		provision_target_group_arn=$(cat .tgarn)
+		echo "----> This is the target group arn: $provision_target_group_arn"
+		if [[ $deploy_process_type =~ ^web[1-9] ]]; then
+			PORT=$(aws secretsmanager get-secret-value --secret-id $deploy_branch_name/$deploy_repository_slug | jq --raw-output '.SecretString' | jq -r .PORT${deploy_process_type^^} || echo false)
+		fi
 	fi
 
 	deploy_desired_count=1
@@ -83,11 +98,6 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 		deploy_desired_count=${BASH_REMATCH[1]}
 		deploy_max_autoscaling_count=${BASH_REMATCH[2]}
 		deploy_autoscaling_policies=${BASH_REMATCH[3]}
-	fi
-
-	if [ -z "$PORT" ]; then
-		# TODO: remember to load it from SM
-		PORT=3000
 	fi
 
 	if [ -z "$DEPLOYMENT_CIRCUIT_BREAKER_RULE" ]; then
@@ -106,9 +116,10 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 			--propagate-tags TASK_DEFINITION \
 			--tags $deploy_json_workload_resource_tags \
 			$( [ -n "$SERVICE_CONNECT_NAMESPACE" ] && echo "--service-connect-configuration enabled=true,namespace=$SERVICE_CONNECT_NAMESPACE,services=[{portName=$deploy_repository_slug-$deploy_process_type,discoveryName=$deploy_service_name,clientAliases=[{port=$PORT,dnsName=$deploy_process_type}]}]") \
-			$( [ "$deploy_process_type" = "web" ] && echo "--load-balancers targetGroupArn=$provision_target_group_arn,containerName=$deploy_repository_slug,containerPort=$PORT")
+        	$( [[ "$deploy_process_type" == "web" || "$deploy_process_type" =~ ^web[1-9] ]] && echo "--load-balancers targetGroupArn=$provision_target_group_arn,containerName=$deploy_repository_slug,containerPort=$PORT")
 		)
 		echo "----> First deployment of $release_arn with $deploy_desired_count task(s) in progress on ECS..."
+		echo "----> This is the ECS service output: $deploy_ecs_output"
 	else
 		deploy_ecs_output=$(aws ecs update-service \
 			--cluster $deploy_cluster_id \
@@ -191,7 +202,11 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 					deploy_predefined_metric_type="ALBRequestCountPerTarget"
 					type_of='alb'
 					deploy_loadbalancer_arn=$(aws elbv2 describe-load-balancers --name $deploy_cluster_id --query 'LoadBalancers[0].LoadBalancerArn' --output text)
-					deploy_targetgroup_arn=$(aws elbv2 describe-target-groups --load-balancer-arn $deploy_loadbalancer_arn --query 'TargetGroups[0].TargetGroupArn' --output text)
+					if [[ $deploy_process_type =~ ^web[1-9] ]]; then
+						deploy_targetgroup_arn=$(aws elbv2 describe-target-groups --load-balancer-arn $deploy_loadbalancer_arn --query 'TargetGroups[?TargetGroupName==`'$deploy_process_type-$deploy_repository_slug-$deploy_branch_name'`].TargetGroupArn' --output text)
+					else
+						deploy_targetgroup_arn=$(aws elbv2 describe-target-groups --load-balancer-arn $deploy_loadbalancer_arn --query 'TargetGroups[?TargetGroupName==`'$deploy_repository_slug-$deploy_branch_name'`].TargetGroupArn' --output text)
+					fi
 					if [[ $deploy_loadbalancer_arn =~ app.* ]]; then
   					deploy_loadbalancer_arn_final_portion=${BASH_REMATCH[0]}
 					fi

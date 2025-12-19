@@ -106,6 +106,20 @@ $ git clone https://github.com/veezor/maestro.git
 $ docker build -t maestro:latest .
 ```
 
+### How to use multiple web ECS services
+
+To utilize multiple web services follow the steps below:
+
+1. Configure the **ECS_SERVICE_TASK_PROCESSES** variable with your additional web services (as in the example below).
+``` bash
+web{512;1024}:1-2[mem=60;cpu=80;alb=60];web1{256;512}:1-2[mem=80;cpu=80;alb=60]
+```
+The additional web services must follow name pattern: web1; web2; web3...
+
+2. Configure a json file in your project with the listener's rule conditions to forward traffic for additional web services (following this [pattern](https://awscli.amazonaws.com/v2/documentation/api/latest/reference/elbv2/create-rule.html#examples)).
+
+The config file must be created in path: **config/maestro/elb-conditions/service_name.json**.
+
 ### Release process
 To trigger [the release workflow](https://github.com/veezor/maestro/blob/main/.github/workflows/release.yml) and deploy the image on AWS public ECR repository use one of the two approaches below:
 
