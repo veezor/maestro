@@ -1,0 +1,19 @@
+[
+  {
+    "name": "datadog-agent",
+    "image": "public.ecr.aws/datadog/agent:latest",
+    "memory": 256,
+    "essential": false,
+    "portMappings": [
+      {
+        "hostPort": 8126,
+        "containerPort": 8126,
+        "protocol": "tcp"
+      }
+    ],
+    "environment": [
+      { "name": "DD_APM_ENABLED", "value": "true" },
+      { "name": "ECS_FARGATE", "value": "true" }
+    ]
+  }
+]

@@ -40,6 +40,7 @@ phases:
 
 - Creation of scheduled tasks
 - Execution of code before release (database migrations, assets upload, etc)
+- Sidecar container injection (via file or environment variables)
 
 ### **Procfile**
 
@@ -84,6 +85,13 @@ Variable | Description | Examples/Values | Default
  `ECS_CONTAINER_STOP_TIMEOUT` | Set stopTimeout on taskdefinition | min: 0, max: 120, default: 30
  `TZ`| Set this variable to the desired task timezone | America/Sao_Paulo
   `ALB_NAME_OVERRIDE`| Set this variable to temporary overriding the ALB name | test-alb
+ `ECS_SIDECAR_IMAGE` | Docker image for a sidecar container to run alongside the main task <br><br> *Alternatively, use a `sidecar.json` file for more flexibility (see section below)* | `public.ecr.aws/datadog/agent:latest` <br> `amazon/aws-otel-collector:latest`
+ `ECS_SIDECAR_NAME` | Name of the sidecar container | `datadog-agent` <br> `otel-collector` | `sidecar`
+ `ECS_SIDECAR_PORT` | Port to expose on the sidecar container | `8126` <br> `4317`
+ `ECS_SIDECAR_MEMORY` | Memory (in MB) allocated to the sidecar container | `256` <br> `512` | `128`
+ `ECS_SIDECAR_ESSENTIAL` | Whether the task should stop if the sidecar stops | `true` <br> `false` | `false`
+ `ECS_SIDECAR_COMMAND` | Command override for the sidecar container <br><br> *Multiple arguments separated by comma* | `--config,/etc/config.yaml`
+ `ECS_SIDECAR_ENVIRONMENT` | Environment variables for the sidecar container <br><br> *Format: KEY1=VAL1,KEY2=VAL2* | `DD_APM_ENABLED=true,ECS_FARGATE=true`
 
  ### How to enable scheduled tasks
 - Create a file tasks/run_tasks.conf with the schedules on your code:
@@ -96,6 +104,59 @@ Variable | Description | Examples/Values | Default
   scheduledtasks: scheduledtasks: tasks/run_task.conf
 
 - On codebuild environment variables, increment the ECS_SERVICE_TASK_PROCESSES with "scheduledtasks{256;512}" as described in the table above.
+
+### How to add a sidecar container
+
+Maestro supports injecting sidecar containers into your ECS task definition. Sidecars run alongside your main application container within the same task, sharing the same network interface (`localhost`). This is useful for APM agents, log collectors, proxies, and other auxiliary services.
+
+There are two ways to configure a sidecar:
+
+#### Option 1: `sidecar.json` file (recommended for advanced use cases)
+
+Create a `sidecar.json` file at the root of your application repository (or inside `REPO_SUB_FOLDER` if set). The file accepts a single object or an array of container definitions.
+
+Each entry must have at least `name` and `image`. Optional fields like `essential`, `memory`, and `logConfiguration` receive sensible defaults if omitted.
+
+Example with a Datadog agent sidecar:
+
+```json
+[
+  {
+    "name": "datadog-agent",
+    "image": "public.ecr.aws/datadog/agent:latest",
+    "memory": 256,
+    "essential": false,
+    "portMappings": [
+      {
+        "hostPort": 8126,
+        "containerPort": 8126,
+        "protocol": "tcp"
+      }
+    ],
+    "environment": [
+      { "name": "DD_APM_ENABLED", "value": "true" },
+      { "name": "ECS_FARGATE", "value": "true" }
+    ]
+  }
+]
+```
+
+A reference example is available at `templates/sidecar.example.json`.
+
+#### Option 2: Environment variables (quick setup for a single sidecar)
+
+Set `ECS_SIDECAR_IMAGE` in your CodeBuild environment variables or Secrets Manager. Additional optional variables allow customizing the sidecar (see the Environment Variables table above).
+
+Example:
+```
+ECS_SIDECAR_IMAGE=public.ecr.aws/datadog/agent:latest
+ECS_SIDECAR_NAME=datadog-agent
+ECS_SIDECAR_PORT=8126
+ECS_SIDECAR_MEMORY=256
+ECS_SIDECAR_ENVIRONMENT=DD_APM_ENABLED=true,ECS_FARGATE=true
+```
+
+> **Note:** If both `sidecar.json` and `ECS_SIDECAR_IMAGE` are present, the file takes priority. Remember to adjust the task-level `cpu` and `memory` (via `ECS_SERVICE_TASK_PROCESSES`) to accommodate the additional container.
 
 ### How to build Docker image
 
