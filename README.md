@@ -84,6 +84,25 @@ Variable | Description | Examples/Values | Default
  `ECS_CONTAINER_STOP_TIMEOUT` | Set stopTimeout on taskdefinition | min: 0, max: 120, default: 30
  `TZ`| Set this variable to the desired task timezone | America/Sao_Paulo
   `ALB_NAME_OVERRIDE`| Set this variable to temporary overriding the ALB name | test-alb
+ `NEWRELIC_SIDECAR_ENABLED` | Enables the New Relic infrastructure sidecar container alongside the application container in the ECS task definition <br><br> **Choose only one of the example values** | `true` <br> `false` | `false`
+ `NEWRELIC_LICENSE_KEY` | New Relic license key used by the sidecar agent. **Required** when `NEWRELIC_SIDECAR_ENABLED` is `true` | `xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxNRAL`
+ `NEWRELIC_SIDECAR_IMAGE` | Custom Docker image for the New Relic sidecar container | `newrelic/nri-ecs:1.11.10` | `newrelic/nri-ecs:1.11.10`
+ `NEWRELIC_SIDECAR_CPU` | CPU units allocated to the New Relic sidecar container | `128` <br> `256` | `256`
+ `NEWRELIC_SIDECAR_MEMORY` | Memory (in MB) allocated to the New Relic sidecar container | `256` <br> `512` | `256`
+
+ ### How to enable the New Relic infrastructure sidecar
+
+Maestro supports running a [New Relic infrastructure agent](https://docs.newrelic.com/docs/infrastructure/install-infrastructure-agent/linux-installation/container-infrastructure-monitoring/) as a sidecar container in your ECS tasks. This provides infrastructure-level monitoring (CPU, memory, network, etc.) directly from the Fargate task.
+
+To enable it:
+
+1. Set `NEWRELIC_SIDECAR_ENABLED` to `true` in your CodeBuild environment variables or Secrets Manager.
+2. Set `NEWRELIC_LICENSE_KEY` with your New Relic license key.
+3. (Optional) Override the sidecar image, CPU, or memory using `NEWRELIC_SIDECAR_IMAGE`, `NEWRELIC_SIDECAR_CPU`, and `NEWRELIC_SIDECAR_MEMORY`.
+
+The sidecar is injected as a non-essential container (`essential: false`), meaning it will not affect the availability of your application if it crashes. A dedicated CloudWatch log group (`/ecs/<family-name>/newrelic`) is automatically provisioned for the sidecar logs.
+
+> **Note:** The sidecar CPU and memory are added on top of your application's resource allocation. Make sure your ECS task has enough total CPU/memory to accommodate both containers. For example, if your app uses `{512;1024}` and the sidecar defaults to `256` CPU / `256` MB memory, your task definition should have at least `768` CPU and `1280` MB memory.
 
  ### How to enable scheduled tasks
 - Create a file tasks/run_tasks.conf with the schedules on your code:

@@ -65,6 +65,17 @@ if [ "$provision_log_group_exists" -eq "0" ]; then
 	echo "----> Created missing log group for $provision_process_type"
 fi
 
+if [[ ! -z "$NEWRELIC_SIDECAR_ENABLED" && "$NEWRELIC_SIDECAR_ENABLED" == "true" ]]; then
+	provision_nr_log_group_name="$provision_log_group_name/newrelic"
+	provision_nr_log_group_exists=$(aws logs describe-log-groups --log-group-name-prefix $provision_nr_log_group_name | jq '.logGroups | length')
+	if [ "$provision_nr_log_group_exists" -eq "0" ]; then
+		provision_nr_log_group_output=$(aws logs create-log-group \
+		--log-group-name $provision_nr_log_group_name \
+		--tags $WORKLOAD_RESOURCE_TAGS)
+		echo "----> Created missing log group for New Relic sidecar"
+	fi
+fi
+
 provision_json_workload_resource_tags=$(jq --raw-input --raw-output '[ split(",") | .[] | "key=" + split("=")[0] + ",value=" + split("=")[1] ] | join(" ")' <<<"$WORKLOAD_RESOURCE_TAGS")
 provision_json_workload_resource_tags_captalized=$(jq --raw-input --raw-output '[ split(",") | .[] | "Key=" + split("=")[0] + ",Value=" + split("=")[1] ] | join(" ")' <<<"$WORKLOAD_RESOURCE_TAGS")
 

@@ -209,6 +209,58 @@ else
 		echo "Warning: Skipping Secret Manager tasks as --aws-sm-name was not defined"
 	fi
 fi
+# New Relic Infrastructure Sidecar
+if [[ ! -z "$NEWRELIC_SIDECAR_ENABLED" && "$NEWRELIC_SIDECAR_ENABLED" == "true" ]]; then
+	echo "----> Injecting New Relic infrastructure sidecar container"
+
+	if [ -z "$NEWRELIC_LICENSE_KEY" ]; then
+		echo "Error: NEWRELIC_SIDECAR_ENABLED is true but NEWRELIC_LICENSE_KEY is not set"
+		exit 1
+	fi
+
+	render_newrelic_image="${NEWRELIC_SIDECAR_IMAGE:-newrelic/nri-ecs:1.11.10}"
+	render_newrelic_cpu="${NEWRELIC_SIDECAR_CPU:-256}"
+	render_newrelic_memory="${NEWRELIC_SIDECAR_MEMORY:-256}"
+	render_newrelic_cluster_name="${render_family_name:-$render_container_name}"
+
+	render_newrelic_sidecar=$(jq -n \
+		--arg image "$render_newrelic_image" \
+		--arg name "newrelic-infra" \
+		--arg license "$NEWRELIC_LICENSE_KEY" \
+		--arg cluster "$render_newrelic_cluster_name" \
+		--arg region "$AWS_REGION" \
+		--arg log_group "/ecs/$render_newrelic_cluster_name/newrelic" \
+		--argjson cpu "$render_newrelic_cpu" \
+		--argjson memory "$render_newrelic_memory" \
+		'{
+			name: $name,
+			image: $image,
+			cpu: $cpu,
+			memory: $memory,
+			essential: false,
+			environment: [
+				{ name: "NRIA_OVERRIDE_HOST_ROOT", value: "" },
+				{ name: "NRIA_IS_FORWARD_ONLY", value: "true" },
+				{ name: "NRIA_PASSTHROUGH_ENVIRONMENT", value: "ECS_CONTAINER_METADATA_URI,ECS_CONTAINER_METADATA_URI_V4,FARGATE" },
+				{ name: "FARGATE", value: "true" },
+				{ name: "NRIA_CUSTOM_ATTRIBUTES", value: ("{\"nrDeployMethod\":\"downloadPage\",\"clusterName\":\"" + $cluster + "\"}") },
+				{ name: "NRIA_LICENSE_KEY", value: $license }
+			],
+			logConfiguration: {
+				logDriver: "awslogs",
+				options: {
+					"awslogs-group": $log_group,
+					"awslogs-region": $region,
+					"awslogs-stream-prefix": "ecs"
+				}
+			}
+		}'
+	)
+
+	cat <<< $(jq ".containerDefinitions += [$render_newrelic_sidecar]" $render_task_definition) > $render_task_definition
+	echo "----> New Relic sidecar injected successfully (image: $render_newrelic_image)"
+fi
+
 echo "----> Task Definition successfully rendered!"
 if [ ! -z "$render_app_spec" ]; then
 	echo "----> Rendering appspec.yaml"
