@@ -123,6 +123,13 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 			$( [ -z "$deploy_max_autoscaling_count" ] && echo "--desired-count $deploy_desired_count")
 		)
 		echo "----> Rolling deployment of $release_arn with $deploy_desired_count task(s) in progress on ECS..."
+
+		deploy_service_arn=$(jq --raw-output '.service.serviceArn' <<<"$deploy_ecs_output")
+		if [ ! -z "$deploy_json_workload_resource_tags" ]; then
+			aws ecs tag-resource \
+				--resource-arn $deploy_service_arn \
+				--tags $deploy_json_workload_resource_tags
+		fi
 	fi
 
 	if [[ ! -z "$NEW_RELIC_API_KEY" && ! -z "$NEW_RELIC_APP_ID" ]]; then
