@@ -127,8 +127,8 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 		deploy_service_arn=$(jq --raw-output '.service.serviceArn' <<<"$deploy_ecs_output")
 		if [ ! -z "$deploy_json_workload_resource_tags" ]; then
 			aws ecs tag-resource \
-				--resource-arn $deploy_service_arn \
-				--tags $deploy_json_workload_resource_tags
+				--resource-arn "$deploy_service_arn" \
+				--tags "$deploy_json_workload_resource_tags"
 		fi
 	fi
 
