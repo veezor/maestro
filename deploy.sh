@@ -71,6 +71,9 @@ if [ -z "$deploy_service_name" ]; then
 fi
 
 release_arn=$(cat .releasearn)
+deploy_json_workload_resource_tags=$(jq --raw-input --raw-output '[ split(",") | .[] | "key=" + split("=")[0] + ",value=" + split("=")[1] ] | join(" ")' <<<"$WORKLOAD_RESOURCE_TAGS")
+deploy_json_workload_resource_tags_captalized=$(jq --raw-input --raw-output '[ split(",") | .[] | "Key=" + split("=")[0] + ",Value=" + split("=")[1] ] | join(" ")' <<<"$WORKLOAD_RESOURCE_TAGS")
+
 if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCESSES" || $ECS_SERVICE_TASK_PROCESSES =~ $deploy_process_type ) ]]; then
 	if [[ $deploy_process_type = "web" ]]; then
 		provision_target_group_arn=$(cat .tgarn)
@@ -128,7 +131,7 @@ if [[ $deploy_process_type != "scheduledtasks" && ( -z "$ECS_SERVICE_TASK_PROCES
 		if [ ! -z "$deploy_json_workload_resource_tags" ]; then
 			aws ecs tag-resource \
 				--resource-arn "$deploy_service_arn" \
-				--tags "$deploy_json_workload_resource_tags"
+				--tags $deploy_json_workload_resource_tags
 		fi
 	fi
 
