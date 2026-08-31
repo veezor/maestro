@@ -209,6 +209,113 @@ else
 		echo "Warning: Skipping Secret Manager tasks as --aws-sm-name was not defined"
 	fi
 fi
+# ---- Sidecar Container Injection ----
+# Supports two modes:
+#   1. File-based: client places a "sidecar.json" in their repo root (array of container definitions)
+#   2. ENV-based:  client sets ECS_SIDECAR_IMAGE (and optionally ECS_SIDECAR_NAME, ECS_SIDECAR_PORT,
+#      ECS_SIDECAR_MEMORY, ECS_SIDECAR_ESSENTIAL, ECS_SIDECAR_COMMAND, ECS_SIDECAR_ENVIRONMENT)
+
+render_sidecar_file="${REPO_SUB_FOLDER:+$REPO_SUB_FOLDER/}sidecar.json"
+
+if [ -f "$render_sidecar_file" ] && [ -s "$render_sidecar_file" ]; then
+	echo "----> Detected sidecar.json, injecting sidecar container(s)"
+	if ! jq -e . >/dev/null 2>&1 < "$render_sidecar_file"; then
+		echo "Error: sidecar.json contains invalid JSON"
+		exit 1
+	fi
+
+	# Normalize: if the file is a single object, wrap it in an array
+	render_sidecar_is_array=$(jq 'if type=="array" then "true" else "false" end' "$render_sidecar_file")
+	if [ "$render_sidecar_is_array" == "\"false\"" ]; then
+		render_sidecar_definitions=$(jq '[.]' "$render_sidecar_file")
+	else
+		render_sidecar_definitions=$(jq '.' "$render_sidecar_file")
+	fi
+
+	# Ensure each sidecar has required fields
+	render_sidecar_valid=$(jq 'all(.[]; .name != null and .image != null)' <<< "$render_sidecar_definitions")
+	if [ "$render_sidecar_valid" != "true" ]; then
+		echo "Error: Each sidecar in sidecar.json must have at least 'name' and 'image' fields"
+		exit 1
+	fi
+
+	# Set defaults for missing optional fields and configure log group
+	render_sidecar_definitions=$(jq --arg region "$AWS_REGION" --arg family "$render_family_name" \
+		'[ .[] | . + {
+			essential: (if .essential == null then false else .essential end),
+			memory: (if .memory == null then 128 else .memory end),
+			logConfiguration: (if .logConfiguration == null then {
+				logDriver: "awslogs",
+				options: {
+					"awslogs-group": ("/ecs/" + $family),
+					"awslogs-region": $region,
+					"awslogs-stream-prefix": ("sidecar-" + .name)
+				}
+			} else .logConfiguration end)
+		}]' <<< "$render_sidecar_definitions")
+
+	cat <<< $(jq --argjson sidecars "$render_sidecar_definitions" \
+		'.containerDefinitions += $sidecars' $render_task_definition) > $render_task_definition
+
+	render_sidecar_count=$(jq 'length' <<< "$render_sidecar_definitions")
+	echo "----> Injected $render_sidecar_count sidecar container(s) from sidecar.json"
+
+elif [ ! -z "$ECS_SIDECAR_IMAGE" ]; then
+	echo "----> Detected ECS_SIDECAR_IMAGE, injecting sidecar container"
+	render_sidecar_name="${ECS_SIDECAR_NAME:-sidecar}"
+	render_sidecar_memory="${ECS_SIDECAR_MEMORY:-128}"
+	render_sidecar_essential="${ECS_SIDECAR_ESSENTIAL:-false}"
+
+	# Build the sidecar container definition
+	render_sidecar_def=$(jq -n \
+		--arg name "$render_sidecar_name" \
+		--arg image "$ECS_SIDECAR_IMAGE" \
+		--argjson memory "$render_sidecar_memory" \
+		--argjson essential "$render_sidecar_essential" \
+		--arg region "$AWS_REGION" \
+		--arg family "$render_family_name" \
+		'{
+			name: $name,
+			image: $image,
+			memory: $memory,
+			essential: $essential,
+			logConfiguration: {
+				logDriver: "awslogs",
+				options: {
+					"awslogs-group": ("/ecs/" + $family),
+					"awslogs-region": $region,
+					"awslogs-stream-prefix": ("sidecar-" + $name)
+				}
+			}
+		}')
+
+	# Optional: port mapping
+	if [ ! -z "$ECS_SIDECAR_PORT" ]; then
+		render_sidecar_def=$(jq --argjson port "$ECS_SIDECAR_PORT" \
+			'. + { portMappings: [{ hostPort: $port, containerPort: $port, protocol: "tcp" }] }' <<< "$render_sidecar_def")
+	fi
+
+	# Optional: command override
+	if [ ! -z "$ECS_SIDECAR_COMMAND" ]; then
+		render_sidecar_cmd_array=$(jq -R 'split(",")' <<< "$ECS_SIDECAR_COMMAND")
+		render_sidecar_def=$(jq --argjson cmd "$render_sidecar_cmd_array" \
+			'. + { command: $cmd }' <<< "$render_sidecar_def")
+	fi
+
+	# Optional: environment variables (format: KEY1=VAL1,KEY2=VAL2)
+	if [ ! -z "$ECS_SIDECAR_ENVIRONMENT" ]; then
+		render_sidecar_env=$(jq -R '[ split(",") | .[] | split("=") | { name: .[0], value: .[1] } ]' <<< "$ECS_SIDECAR_ENVIRONMENT")
+		render_sidecar_def=$(jq --argjson env "$render_sidecar_env" \
+			'. + { environment: $env }' <<< "$render_sidecar_def")
+	fi
+
+	cat <<< $(jq --argjson sidecar "$render_sidecar_def" \
+		'.containerDefinitions += [$sidecar]' $render_task_definition) > $render_task_definition
+
+	echo "----> Injected sidecar container '$render_sidecar_name' ($ECS_SIDECAR_IMAGE)"
+fi
+# ---- End Sidecar Injection ----
+
 echo "----> Task Definition successfully rendered!"
 if [ ! -z "$render_app_spec" ]; then
 	echo "----> Rendering appspec.yaml"
